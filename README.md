@@ -171,6 +171,8 @@ DJANGO_CSRF_TRUSTED_ORIGINS=
 
 - Render용 Gunicorn, WhiteNoise, PostgreSQL 설정과 `build.sh`가 준비되어 있다.
 - 운영에서는 `DATABASE_URL`로 PostgreSQL을 쓰며, 로컬에서는 계속 SQLite를 쓴다.
+- Render 무료 PostgreSQL은 영구 운영 DB로 가정하지 않고 포트폴리오·친구 테스트·기능
+  검증 용도로만 사용한다. 무료 정책은 실제 배포 직전에 다시 확인한다.
 - 실제 Render 서비스·DB·배포 URL은 아직 만들지 않았다.
 - Dashboard 설정 순서와 무료 플랜 제한은 [Render 배포 안내](docs/DEPLOY_RENDER.md)를 따른다.
 - 실제 카드·가격 데이터가 부족하며 DEMO를 실데이터로 사용하지 않는다.

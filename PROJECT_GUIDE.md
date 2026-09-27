@@ -1014,7 +1014,7 @@ Codex는 새로운 작업을 시작할 때:
 - [x] Phase 11 - 수동 가격 갱신
 - [x] Phase 12 - UI
 - [x] Phase 13 - 테스트 및 오류처리
-- [x] Phase 14 - 로컬 Git/README 준비 완료 (identity 설정과 commit/push 대기)
+- [x] Phase 14 - Git/README 및 GitHub push 완료
 - [ ] Phase 15 - 배포 (Render 배포 준비 완료, 실제 서비스 생성·배포 대기)
 
 
