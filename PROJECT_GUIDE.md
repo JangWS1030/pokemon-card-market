@@ -1015,12 +1015,13 @@ Codex는 새로운 작업을 시작할 때:
 - [x] Phase 12 - UI
 - [x] Phase 13 - 테스트 및 오류처리
 - [x] Phase 14 - 로컬 Git/README 준비 완료 (identity 설정과 commit/push 대기)
-- [ ] Phase 15 - 배포
+- [ ] Phase 15 - 배포 (Render 배포 준비 완료, 실제 서비스 생성·배포 대기)
 
 
 # 27. 현재 작업
 
-Phase 1~14 로컬 준비가 완료되었다. GitHub push와 배포는 진행하지 않았다.
+Phase 1~14와 Render 배포용 코드 준비가 완료되었다. 실제 Render 서비스와 PostgreSQL은
+생성하지 않았고 배포도 진행하지 않았다.
 
 현재 구현된 범위:
 
@@ -1046,8 +1047,10 @@ Phase 1~14 로컬 준비가 완료되었다. GitHub push와 배포는 진행하�
 - 재실행 가능한 DEMO seed와 실제 source 보호형 clear 명령
 - 데이터 상태 안내, 검색 UX, 반응형 상세, 404/500 페이지
 - 배포용 Django 환경변수와 `STATIC_ROOT` 구조
-- 63개 Mock/DB/UI 회귀 테스트
-- 로컬 Git 저장소 초기화와 Secret 검사 후 staging (identity 미설정으로 commit 대기)
+- Gunicorn, WhiteNoise, `DATABASE_URL` 기반 PostgreSQL, 로컬 SQLite fallback
+- Render build script, Blueprint, `/health/`, 상세 배포 문서
+- Mock/DB/UI/배포 설정 회귀 테스트
+- GitHub 원격 저장소 연결 및 기존 코드 push 완료
 
 Phase 4의 JustTCG 공식 API 연결은 실제 응답으로 확인했다. 다만 확인한 10개 Card에는
 Korean variant가 없어 Card DB import는 완료하지 않았다. eBay 판매가격 파이프라인은

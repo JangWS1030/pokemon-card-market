@@ -169,11 +169,10 @@ DJANGO_CSRF_TRUSTED_ORIGINS=
 
 ## 배포 준비와 제한사항
 
-- 개발 static은 정상이며 `STATIC_ROOT=staticfiles`가 설정되어 있다.
-- 운영에서는 `collectstatic`과 WSGI/ASGI 서버·static 제공 방식을 결정해야 한다.
-- WhiteNoise나 호스팅 패키지는 배포 대상을 정한 뒤 추가한다.
-- 현재 SQLite와 개발용 `runserver`를 사용한다.
-- 로컬 Git은 초기화됐지만 GitHub repository, remote, 배포 URL은 아직 없다.
+- Render용 Gunicorn, WhiteNoise, PostgreSQL 설정과 `build.sh`가 준비되어 있다.
+- 운영에서는 `DATABASE_URL`로 PostgreSQL을 쓰며, 로컬에서는 계속 SQLite를 쓴다.
+- 실제 Render 서비스·DB·배포 URL은 아직 만들지 않았다.
+- Dashboard 설정 순서와 무료 플랜 제한은 [Render 배포 안내](docs/DEPLOY_RENDER.md)를 따른다.
 - 실제 카드·가격 데이터가 부족하며 DEMO를 실데이터로 사용하지 않는다.
 
 ## 향후 계획
@@ -181,5 +180,5 @@ DJANGO_CSRF_TRUSTED_ORIGINS=
 1. JustTCG Korean variant가 있는 특정 set/card를 좁게 검증하고 소량 import
 2. eBay 승인 후 한 카드 dry-run 및 해외 Listing 수집 검증
 3. 합법적인 국내 가격 데이터 출처 확정
-4. Git 사용자 이름/email 설정 후 첫 commit과 GitHub repository 연결
-5. 배포 플랫폼 선정, production 설정과 static 전략 검증
+4. Render Dashboard에서 PostgreSQL과 Web Service 생성 및 환경변수 등록
+5. 첫 배포 후 health/static/migration과 데이터 영속성 확인

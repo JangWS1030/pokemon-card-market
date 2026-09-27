@@ -2,9 +2,14 @@ from collections import defaultdict
 
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
 from .models import Card
+
+
+def health(request):
+    return JsonResponse({'status': 'ok'})
 
 
 def home(request):

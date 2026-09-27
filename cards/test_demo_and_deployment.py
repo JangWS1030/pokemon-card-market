@@ -1,13 +1,16 @@
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from cards.models import Card, Condition, MarketListing, MarketRegion, MarketSource, PriceHistory
 from cards.services.demo_data import clear_demo_data, seed_demo_data
-from config.env import env_bool, env_list
+from config.env import database_config, env_bool, env_list, secret_key, staticfiles_backend
 
 
 class DemoDataTests(TestCase):
@@ -75,6 +78,87 @@ class EnvironmentParsingTests(TestCase):
     @patch.dict('os.environ', {'TEST_BOOL': 'unexpected'}, clear=False)
     def test_invalid_boolean_uses_default(self):
         self.assertTrue(env_bool('TEST_BOOL', default=True))
+
+    @patch.dict('os.environ', {'DJANGO_DEBUG': 'True'}, clear=False)
+    def test_debug_true_is_parsed(self):
+        self.assertTrue(env_bool('DJANGO_DEBUG', default=False))
+
+    @patch.dict('os.environ', {'DJANGO_DEBUG': '0'}, clear=False)
+    def test_debug_zero_is_parsed(self):
+        self.assertFalse(env_bool('DJANGO_DEBUG', default=True))
+
+    @patch.dict(
+        'os.environ',
+        {
+            'DJANGO_ALLOWED_HOSTS': 'first.example, second.example',
+            'DJANGO_CSRF_TRUSTED_ORIGINS': 'https://first.example,https://second.example',
+        },
+        clear=False,
+    )
+    def test_host_and_csrf_lists_are_parsed(self):
+        self.assertEqual(
+            env_list('DJANGO_ALLOWED_HOSTS'),
+            ['first.example', 'second.example'],
+        )
+        self.assertEqual(
+            env_list('DJANGO_CSRF_TRUSTED_ORIGINS'),
+            ['https://first.example', 'https://second.example'],
+        )
+
+    def test_missing_database_url_uses_sqlite(self):
+        sqlite_path = Path('local.sqlite3')
+
+        config = database_config('', sqlite_path)
+
+        self.assertEqual(config['ENGINE'], 'django.db.backends.sqlite3')
+        self.assertEqual(config['NAME'], sqlite_path)
+
+    def test_database_url_uses_postgresql(self):
+        config = database_config(
+            'postgresql://user:password@db.example.test:5432/cards',
+            Path('local.sqlite3'),
+        )
+
+        self.assertEqual(config['ENGINE'], 'django.db.backends.postgresql')
+        self.assertEqual(config['NAME'], 'cards')
+        self.assertEqual(config['HOST'], 'db.example.test')
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_missing_production_secret_is_rejected(self):
+        with self.assertRaisesMessage(ImproperlyConfigured, 'DJANGO_SECRET_KEY'):
+            secret_key(debug=False)
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_debug_mode_can_use_local_secret(self):
+        self.assertIn('local-development-only', secret_key(debug=True))
+
+    def test_production_uses_whitenoise_manifest_storage(self):
+        self.assertEqual(
+            staticfiles_backend(debug=False),
+            'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        )
+
+
+class DeploymentConfigurationTests(TestCase):
+    def test_health_endpoint_does_not_need_database_data(self):
+        response = self.client.get(reverse('health'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    def test_whitenoise_follows_security_middleware(self):
+        security_index = settings.MIDDLEWARE.index(
+            'django.middleware.security.SecurityMiddleware'
+        )
+
+        self.assertEqual(
+            settings.MIDDLEWARE[security_index + 1],
+            'whitenoise.middleware.WhiteNoiseMiddleware',
+        )
+        self.assertEqual(
+            settings.STORAGES['staticfiles']['BACKEND'],
+            'django.contrib.staticfiles.storage.StaticFilesStorage',
+        )
 
 
 class ErrorPageTests(TestCase):
