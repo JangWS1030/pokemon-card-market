@@ -1,0 +1,32 @@
+{% if cards %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
+    {% for card in cards %}
+    <div class="col">
+        <a class="card h-100 text-decoration-none text-dark shadow-sm card-link"
+           href="{% url 'card-detail' card.pk %}">
+            <div class="card-image-wrap">
+                {% if card.image_url %}
+                <img src="{{ card.image_url }}" class="card-image" alt="{{ card.display_name }}"
+                     onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+                <div class="image-placeholder" hidden>이미지를 불러올 수 없습니다.</div>
+                {% else %}
+                <div class="image-placeholder">등록된 이미지가 없습니다.</div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if card.source == 'DEMO' %}<span class="badge text-bg-warning mb-2">DEMO · 테스트 데이터</span>{% endif %}
+                <h3 class="h6 fw-bold mb-1">{{ card.display_name }}</h3>
+                {% if card.name_ko and card.name_en %}<p class="small text-secondary mb-2">{{ card.name_en }}</p>{% endif %}
+                <p class="small mb-1">{{ card.set_name }}</p>
+                <p class="small text-secondary mb-0">
+                    {{ card.card_number }}{% if card.rarity %} · {{ card.rarity }}{% endif %}
+                </p>
+                <p class="small text-secondary mb-0">언어: {{ card.language }}</p>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-panel text-center text-secondary py-5">{{ empty_message }}</div>
+{% endif %}

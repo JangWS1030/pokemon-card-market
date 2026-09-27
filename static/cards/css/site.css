@@ -1,0 +1,84 @@
+body {
+    min-height: 100vh;
+}
+
+.hero-panel,
+.empty-panel {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 1rem;
+}
+
+.hero-panel {
+    background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
+}
+
+.status-card,
+.reference-price-card,
+.source-panel {
+    height: 100%;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 1rem;
+}
+
+.card-link {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.12) !important;
+}
+
+.card-link:focus-visible {
+    outline: 3px solid rgba(13, 110, 253, 0.45);
+    outline-offset: 2px;
+}
+
+.card-image-wrap,
+.detail-image-wrap {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #f1f3f5;
+}
+
+.card-image-wrap {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--bs-card-border-radius) var(--bs-card-border-radius) 0 0;
+}
+
+.detail-image-wrap {
+    min-height: 24rem;
+    border: 1px solid #dee2e6;
+    border-radius: 1rem;
+}
+
+.card-image,
+.detail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.image-placeholder {
+    padding: 2rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+.detail-list dt {
+    color: #6c757d;
+}
+
+@media (max-width: 575.98px) {
+    .detail-image-wrap {
+        min-height: 18rem;
+    }
+
+    .hero-panel {
+        padding: 2rem 1rem !important;
+    }
+}

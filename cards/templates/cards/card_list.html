@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}카드 검색 | Pokemon Card Market{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h2 fw-bold">카드 검색</h1>
+    <p class="text-secondary">카드명, 세트명, 카드번호로 검색할 수 있습니다.</p>
+</div>
+
+<form class="row g-2 mb-4" method="get" role="search">
+    <div class="col-12 col-md">
+        <label class="visually-hidden" for="card-search">검색어</label>
+        <input class="form-control" id="card-search" name="q" type="search"
+               value="{{ query }}" placeholder="예: 리자몽, Charizard, 201/165">
+    </div>
+    <div class="col-8 col-md-auto d-grid">
+        <button class="btn btn-primary" type="submit">검색</button>
+    </div>
+    <div class="col-4 col-md-auto d-grid">
+        <a class="btn btn-outline-secondary" href="{% url 'card-list' %}">초기화</a>
+    </div>
+</form>
+
+{% if query %}
+<p class="small text-secondary">“{{ query }}” 검색 결과 {{ page_obj.paginator.count }}개</p>
+{% else %}
+<p class="small text-secondary">전체 카드 {{ page_obj.paginator.count }}개</p>
+{% endif %}
+
+{% include 'cards/_card_grid.html' with cards=page_obj empty_message='검색 결과가 없습니다.' %}
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-5" aria-label="카드 목록 페이지">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query|urlencode }}&amp;page={{ page_obj.previous_page_number }}">이전</a>
+        </li>
+        {% endif %}
+        {% for page_number in page_obj.paginator.page_range %}
+            {% if page_number == page_obj.number %}
+            <li class="page-item active" aria-current="page"><span class="page-link">{{ page_number }}</span></li>
+            {% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}
+            <li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&amp;page={{ page_number }}">{{ page_number }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query|urlencode }}&amp;page={{ page_obj.next_page_number }}">다음</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

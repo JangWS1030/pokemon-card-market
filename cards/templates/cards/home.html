@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Pokemon Card Market{% endblock %}
+
+{% block content %}
+<section class="hero-panel p-4 p-md-5 mb-5 text-center">
+    <p class="text-uppercase text-primary fw-semibold mb-2">Pokemon Card Market</p>
+    <h1 class="display-6 fw-bold mb-3">포켓몬 카드 정보와 참고 가격</h1>
+    <p class="text-secondary mb-4">포켓몬 카드 정보를 검색하고 수집된 판매 데이터를 기반으로 참고 가격을 확인합니다.</p>
+    <form class="row g-2 justify-content-center" action="{% url 'card-list' %}" method="get">
+        <div class="col-12 col-md-8">
+            <label class="visually-hidden" for="home-search">카드 검색</label>
+            <input class="form-control form-control-lg" id="home-search" name="q" type="search"
+                   placeholder="포켓몬 카드 이름을 검색하세요">
+        </div>
+        <div class="col-12 col-md-auto d-grid">
+            <button class="btn btn-primary btn-lg" type="submit">검색</button>
+        </div>
+    </form>
+</section>
+
+<section class="row g-3 mb-5" aria-labelledby="data-status-title">
+    <div class="col-12"><h2 class="h4 mb-0" id="data-status-title">데이터 준비 상태</h2></div>
+    <div class="col-12 col-md-4">
+        <article class="status-card h-100">
+            <p class="small text-secondary mb-1">카드 데이터</p>
+            <p class="fw-semibold mb-1">{% if has_real_cards %}실데이터 있음{% else %}API 확인 · 데이터 탐색 중{% endif %}</p>
+            <p class="small text-secondary mb-0">JustTCG Korean variant 확인 대기</p>
+        </article>
+    </div>
+    <div class="col-12 col-md-4">
+        <article class="status-card h-100">
+            <p class="small text-secondary mb-1">해외 가격</p>
+            <p class="fw-semibold mb-1">{% if has_real_prices %}수집 데이터 있음{% else %}eBay 승인 대기{% endif %}</p>
+            <p class="small text-secondary mb-0">eBay 가격은 해외 참고 가격으로만 사용</p>
+        </article>
+    </div>
+    <div class="col-12 col-md-4">
+        <article class="status-card h-100">
+            <p class="small text-secondary mb-1">국내 가격</p>
+            <p class="fw-semibold mb-1">데이터 출처 검토 중</p>
+            <p class="small text-secondary mb-0">확인되지 않은 데이터는 제공하지 않음</p>
+        </article>
+    </div>
+    {% if has_demo_cards %}
+    <div class="col-12"><div class="alert alert-warning mb-0">DEMO 테스트 데이터가 표시 중이며 실제 카드 정보나 시세가 아닙니다.</div></div>
+    {% endif %}
+</section>
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">최근 등록 카드</h2>
+        <a href="{% url 'card-list' %}" class="btn btn-sm btn-outline-primary">전체 보기</a>
+    </div>
+    {% include 'cards/_card_grid.html' with cards=cards empty_message='등록된 카드가 없습니다.' %}
+</section>
+{% endblock %}

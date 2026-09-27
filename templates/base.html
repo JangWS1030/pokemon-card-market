@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Pokemon Card Market{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'cards/css/site.css' %}" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand bg-dark navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-semibold" href="{% url 'home' %}">Pokemon Card Market</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'home' %}">홈</a>
+                <a class="nav-link" href="{% url 'card-list' %}">카드 검색</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4 py-md-5">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="border-top bg-white py-4 text-center text-secondary small">
+        카드 가격은 참고 정보이며 데이터 수집 시각과 출처를 함께 확인해 주세요.
+    </footer>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}오류가 발생했습니다 | Pokemon Card Market{% endblock %}
+
+{% block content %}
+<section class="empty-panel text-center py-5 px-3">
+    <h1 class="h3">일시적인 오류가 발생했습니다.</h1>
+    <p class="text-secondary">잠시 후 다시 시도해 주세요.</p>
+    <a class="btn btn-primary" href="{% url 'home' %}">홈으로 돌아가기</a>
+</section>
+{% endblock %}
