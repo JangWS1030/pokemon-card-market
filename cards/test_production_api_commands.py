@@ -40,11 +40,14 @@ def card_data():
 
 
 class FakeResponse:
-    def __init__(self, status_code=200, payload=None):
+    def __init__(self, status_code=200, payload=None, json_error=None):
         self.status_code = status_code
         self.payload = payload
+        self.json_error = json_error
 
     def json(self):
+        if self.json_error:
+            raise self.json_error
         return self.payload
 
 
@@ -210,6 +213,26 @@ class CheckEbayConnectionTests(TestCase):
 
         session.post.assert_called_once()
         session.get.assert_called_once()
+        self.assertEqual(
+            session.post.call_args.args[0],
+            'https://api.ebay.com/identity/v1/oauth2/token',
+        )
+        self.assertEqual(
+            session.post.call_args.kwargs['auth'],
+            (
+                EBAY_ENVIRONMENT['EBAY_CLIENT_ID'],
+                EBAY_ENVIRONMENT['EBAY_CLIENT_SECRET'],
+            ),
+        )
+        self.assertEqual(
+            session.post.call_args.kwargs['headers']['Content-Type'],
+            'application/x-www-form-urlencoded',
+        )
+        self.assertEqual(session.post.call_args.kwargs['data']['grant_type'], 'client_credentials')
+        self.assertEqual(
+            session.post.call_args.kwargs['data']['scope'],
+            'https://api.ebay.com/oauth/api_scope',
+        )
         self.assertEqual(session.get.call_args.kwargs['params']['limit'], 3)
         self.assertNotIn('offset', session.get.call_args.kwargs['params'])
         self.assertIn('Marketplace: EBAY_US', output.getvalue())
@@ -227,12 +250,98 @@ class CheckEbayConnectionTests(TestCase):
     @patch('cards.collectors.markets.ebay.requests.Session')
     def test_oauth_failure_does_not_call_browse(self, session_class):
         session = session_class.return_value
-        session.post.return_value = FakeResponse(status_code=401, payload={})
+        session.post.return_value = FakeResponse(
+            status_code=401,
+            payload={
+                'error': 'invalid_client',
+                'error_description': 'Client authentication failed.',
+            },
+        )
 
         with patch.dict(os.environ, EBAY_ENVIRONMENT, clear=True):
-            with self.assertRaises(CommandError):
+            with self.assertRaises(CommandError) as raised:
                 call_command('check_ebay_connection', stdout=StringIO())
 
+        message = str(raised.exception)
+        self.assertIn('status=401', message)
+        self.assertIn('error=invalid_client', message)
+        self.assertIn('description=Client authentication failed.', message)
+        session.post.assert_called_once()
+        session.get.assert_not_called()
+        self.assertEqual(Card.objects.count(), 0)
+        self.assertEqual(MarketListing.objects.count(), 0)
+        self.assertEqual(PriceHistory.objects.count(), 0)
+
+    @patch('cards.collectors.markets.ebay.requests.Session')
+    def test_oauth_400_includes_only_safe_error_fields(self, session_class):
+        session = session_class.return_value
+        session.post.return_value = FakeResponse(
+            status_code=400,
+            payload={
+                'error': 'invalid_request',
+                'error_description': 'The OAuth request is malformed.',
+                'access_token': 'must-not-be-logged',
+            },
+        )
+
+        with patch.dict(os.environ, EBAY_ENVIRONMENT, clear=True):
+            with self.assertRaises(CommandError) as raised:
+                call_command('check_ebay_connection', stdout=StringIO())
+
+        message = str(raised.exception)
+        self.assertIn('status=400', message)
+        self.assertIn('error=invalid_request', message)
+        self.assertIn('description=The OAuth request is malformed.', message)
+        self.assertNotIn('must-not-be-logged', message)
+        session.post.assert_called_once()
+        session.get.assert_not_called()
+
+    @patch('cards.collectors.markets.ebay.requests.Session')
+    def test_oauth_non_json_failure_uses_generic_safe_message(self, session_class):
+        session = session_class.return_value
+        session.post.return_value = FakeResponse(
+            status_code=502,
+            json_error=ValueError('raw response must not be logged'),
+        )
+
+        with patch.dict(os.environ, EBAY_ENVIRONMENT, clear=True):
+            with self.assertRaises(CommandError) as raised:
+                call_command('check_ebay_connection', stdout=StringIO())
+
+        message = str(raised.exception)
+        self.assertIn('status=502', message)
+        self.assertIn('error=unknown', message)
+        self.assertIn('description=unavailable (non-JSON response)', message)
+        self.assertNotIn('raw response must not be logged', message)
+        session.post.assert_called_once()
+        session.get.assert_not_called()
+
+    @patch('cards.collectors.markets.ebay.requests.Session')
+    def test_oauth_diagnostic_redacts_credentials_and_authorization(self, session_class):
+        session = session_class.return_value
+        sensitive_description = (
+            f'{EBAY_ENVIRONMENT["EBAY_CLIENT_ID"]} '
+            f'{EBAY_ENVIRONMENT["EBAY_CLIENT_SECRET"]} '
+            'Authorization: Basic encoded-credential'
+        )
+        session.post.return_value = FakeResponse(
+            status_code=401,
+            payload={
+                'error': 'invalid_client',
+                'error_description': sensitive_description,
+            },
+        )
+
+        with patch.dict(os.environ, EBAY_ENVIRONMENT, clear=True):
+            with self.assertRaises(CommandError) as raised:
+                call_command('check_ebay_connection', stdout=StringIO())
+
+        message = str(raised.exception)
+        self.assertIn('description=[redacted]', message)
+        self.assertNotIn(EBAY_ENVIRONMENT['EBAY_CLIENT_ID'], message)
+        self.assertNotIn(EBAY_ENVIRONMENT['EBAY_CLIENT_SECRET'], message)
+        self.assertNotIn('Authorization:', message)
+        self.assertNotIn('Basic encoded-credential', message)
         session.post.assert_called_once()
         session.get.assert_not_called()
 

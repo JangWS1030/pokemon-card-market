@@ -162,13 +162,61 @@ class EbayMarketCollector:
             raise InvalidResponseError(message)
         return payload
 
-    @staticmethod
-    def _raise_for_status(response, authentication_request=False):
+    def _raise_for_status(self, response, authentication_request=False):
         if 200 <= response.status_code < 300:
             return
+        if authentication_request:
+            raise AuthenticationError(self._oauth_failure_message(response))
         if response.status_code in (401, 403):
-            target = '인증' if authentication_request else 'API 인증'
-            raise AuthenticationError(f'eBay {target}에 실패했습니다.')
+            raise AuthenticationError('eBay API 인증에 실패했습니다.')
         if response.status_code == 429:
             raise RateLimitError('eBay API 호출 한도를 초과했습니다.')
         raise ExternalAPIError(f'eBay API가 HTTP {response.status_code} 오류를 반환했습니다.')
+
+    def _oauth_failure_message(self, response):
+        try:
+            payload = response.json()
+        except (TypeError, ValueError):
+            payload = None
+
+        error_name = 'unknown'
+        description = 'unavailable (non-JSON response)'
+        if isinstance(payload, dict):
+            error_name = self._safe_diagnostic_value(
+                payload.get('error') or payload.get('code') or payload.get('errorId'),
+                fallback='unknown',
+            )
+            description = self._safe_diagnostic_value(
+                payload.get('error_description') or payload.get('message'),
+                fallback='no safe error description returned',
+            )
+
+        return (
+            f'eBay OAuth failed: status={response.status_code}, '
+            f'error={error_name}, description={description}'
+        )
+
+    def _safe_diagnostic_value(self, value, fallback):
+        if not isinstance(value, (str, int, float)):
+            return fallback
+
+        text = ' '.join(str(value).split())[:200]
+        if not text:
+            return fallback
+
+        sensitive_values = (self.client_id, self.client_secret, self._access_token)
+        if any(secret and str(secret) in text for secret in sensitive_values):
+            return '[redacted]'
+
+        lowered = text.casefold()
+        sensitive_markers = (
+            'authorization:',
+            'basic ',
+            'bearer ',
+            'access_token',
+            'refresh_token',
+            'client_secret',
+        )
+        if any(marker in lowered for marker in sensitive_markers):
+            return '[redacted]'
+        return text
