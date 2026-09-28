@@ -4,12 +4,14 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import CommandError, call_command
+from django.db import DataError
 from django.test import TestCase
 from django.utils import timezone
 
 from cards.collectors import AuthenticationError, MarketData
 from cards.models import Card, Condition, MarketListing, MarketSource, PriceHistory
 from cards.services.demo_data import seed_demo_data
+from cards.services.market_importer import save_market_listing as real_save_market_listing
 
 
 IMPORT_ENVIRONMENT = {
@@ -271,6 +273,40 @@ class ImportEbayOnceTests(TestCase):
         message = str(raised.exception)
         self.assertNotIn(IMPORT_ENVIRONMENT['EBAY_CLIENT_ID'], message)
         self.assertNotIn(IMPORT_ENVIRONMENT['EBAY_CLIENT_SECRET'], message)
+        self.assertEqual(MarketSource.objects.count(), 0)
+        self.assertEqual(MarketListing.objects.count(), 0)
+        self.assertEqual(PriceHistory.objects.count(), 0)
+
+    @patch('cards.management.commands.import_ebay_once.EbayMarketCollector')
+    def test_second_listing_failure_rolls_back_first_listing_and_histories(
+        self,
+        collector_class,
+    ):
+        collector = collector_class.return_value
+        collector.is_configured = True
+        collector.collect.return_value = [
+            market_data('first-item', 'Pokemon Pikachu 025/165 raw', '10.00'),
+            market_data('second-item', 'Pokemon Pikachu 025/165 raw', '12.00'),
+        ]
+        save_calls = 0
+
+        def save_then_fail(*args, **kwargs):
+            nonlocal save_calls
+            save_calls += 1
+            if save_calls == 2:
+                raise DataError('simulated field length failure')
+            return real_save_market_listing(*args, **kwargs)
+
+        with patch.dict(os.environ, IMPORT_ENVIRONMENT, clear=True):
+            with patch(
+                'cards.management.commands.import_ebay_once.save_market_listing',
+                side_effect=save_then_fail,
+            ):
+                with self.assertRaises(DataError):
+                    call_command('import_ebay_once', stdout=StringIO())
+
+        self.assertEqual(save_calls, 2)
+        self.assertEqual(Card.objects.count(), 1)
         self.assertEqual(MarketSource.objects.count(), 0)
         self.assertEqual(MarketListing.objects.count(), 0)
         self.assertEqual(PriceHistory.objects.count(), 0)

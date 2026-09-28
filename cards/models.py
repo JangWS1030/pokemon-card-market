@@ -76,7 +76,7 @@ class MarketListing(models.Model):
     title = models.CharField(max_length=500)
     price = models.DecimalField(max_digits=14, decimal_places=2)
     currency = models.CharField(max_length=3)
-    url = models.URLField()
+    url = models.URLField(max_length=2048)
     condition = models.CharField(max_length=10, choices=Condition.choices)
     grading_company = models.CharField(
         max_length=3,

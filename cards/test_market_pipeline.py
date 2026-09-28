@@ -219,6 +219,34 @@ class PricePipelineTests(TestCase):
             is_active=True,
         )
 
+    def test_long_ebay_title_and_url_are_preserved_through_save(self):
+        long_title = 'Pikachu 025/100 raw ' + ('collectible card listing ' * 12)
+        long_url = 'https://www.ebay.com/itm/123?' + ('tracking=value&' * 20)
+        collector = EbayMarketCollector('mock-id', 'mock-secret')
+        collected = collector.normalize(
+            {
+                'itemId': 'long-ebay-listing',
+                'title': long_title,
+                'price': {'value': '19.99', 'currency': 'USD'},
+                'itemWebUrl': long_url,
+            }
+        )
+
+        result = save_market_listing(
+            collected,
+            self.card,
+            self.source,
+            classify_condition(collected.title, card_matched=True),
+        )
+
+        result.listing.refresh_from_db()
+        self.assertGreater(len(long_title), 200)
+        self.assertGreater(len(long_url), 200)
+        self.assertEqual(result.listing.title, long_title)
+        self.assertEqual(result.listing.url, long_url)
+        self.assertEqual(MarketListing._meta.get_field('title').max_length, 500)
+        self.assertEqual(MarketListing._meta.get_field('url').max_length, 2048)
+
     def test_iqr_removes_large_outlier(self):
         result = remove_iqr_outliers([10, 11, 12, 13, 100])
         self.assertEqual(result.prices, tuple(map(Decimal, ('10', '11', '12', '13'))))
