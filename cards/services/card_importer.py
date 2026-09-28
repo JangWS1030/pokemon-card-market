@@ -93,6 +93,7 @@ def _save_card(card_data: dict) -> str:
             return 'updated'
 
     candidates = Card.objects.filter(
+        source=card_data['source'],
         set_name=card_data['set_name'],
         card_number=card_data['card_number'],
         language=card_data['language'],

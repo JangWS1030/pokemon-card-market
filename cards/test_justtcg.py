@@ -49,7 +49,13 @@ def justtcg_payload():
                 'set_name': 'Test Set',
                 'number': '26/100',
                 'rarity': 'Common',
-                'variants': [],
+                'variants': [
+                    {
+                        'uuid': '44444444-4444-5444-8444-444444444444',
+                        'language': 'English',
+                        'condition': 'Near Mint',
+                    }
+                ],
             },
         ],
         'meta': {'total': 100, 'limit': 2, 'offset': 0, 'hasMore': True},
@@ -58,26 +64,112 @@ def justtcg_payload():
 
 
 class JustTCGCollectorTests(TestCase):
-    def test_collects_only_cards_with_korean_variants(self):
+    def test_collects_base_cards_with_and_without_korean_variants(self):
         session = Mock()
         session.get.return_value = FakeResponse(payload=justtcg_payload())
         collector = JustTCGCardCollector(api_key='mock-key', session=session)
 
         cards = collector.collect(limit=2, query='Pikachu')
 
-        self.assertEqual(len(cards), 1)
+        self.assertEqual(len(cards), 2)
         self.assertEqual(cards[0].external_id, '11111111-1111-5111-8111-111111111111')
         self.assertEqual(cards[0].name_ko, '')
         self.assertEqual(cards[0].name_en, 'Pikachu')
         self.assertEqual(cards[0].language, 'KO')
+        self.assertEqual(cards[1].name_ko, '')
+        self.assertEqual(cards[1].name_en, 'Eevee')
+        self.assertEqual(cards[1].language, 'UNKNOWN')
         self.assertIsNone(cards[0].image_url)
         params = session.get.call_args.kwargs['params']
         self.assertEqual(params['game'], 'pokemon')
-        self.assertEqual(params['language'], 'Korean')
+        self.assertNotIn('language', params)
         self.assertEqual(params['limit'], 2)
         self.assertEqual(params['q'], 'Pikachu')
+        self.assertEqual(params['offset'], 0)
+        session.get.assert_called_once()
         self.assertEqual(collector.last_report.korean_variant_cards, 1)
         self.assertEqual(collector.last_report.without_korean_variant, 1)
+        self.assertTrue(collector.last_report.card_summaries[0]['has_korean_variant'])
+        self.assertFalse(collector.last_report.card_summaries[1]['has_korean_variant'])
+
+    def test_pikachu_cards_without_variants_are_kept_and_non_cards_are_excluded(self):
+        payload = {
+            'data': [
+                {
+                    'uuid': 'ea180f3a-8c13-59b6-b887-c5cf9f7be4dd',
+                    'name': 'Pikachu',
+                    'game': 'Pokemon',
+                    'set': 'sv-scarlet-violet-151-pokemon',
+                    'set_name': 'SV: Scarlet & Violet 151',
+                    'number': '025/165',
+                    'rarity': 'Common',
+                    'variants': [],
+                },
+                {
+                    'uuid': '4de18046-39c2-572f-8b4c-c8371db5836f',
+                    'name': 'Pikachu',
+                    'game': 'Pokemon',
+                    'set': 'sv-scarlet-violet-151-pokemon',
+                    'set_name': 'SV: Scarlet & Violet 151',
+                    'number': '173/165',
+                    'rarity': 'Illustration Rare',
+                    'variants': [],
+                },
+                {
+                    'uuid': 'sealed-with-na',
+                    'name': 'Booster Bundle',
+                    'game': 'Pokemon',
+                    'set': 'sv-scarlet-violet-151-pokemon',
+                    'set_name': 'SV: Scarlet & Violet 151',
+                    'number': 'N/A',
+                    'variants': [],
+                },
+                {
+                    'uuid': 'sealed-without-number',
+                    'name': 'Elite Trainer Box',
+                    'game': 'Pokemon',
+                    'set': 'sv-scarlet-violet-151-pokemon',
+                    'set_name': 'SV: Scarlet & Violet 151',
+                    'variants': [],
+                },
+            ]
+        }
+        session = Mock()
+        session.get.return_value = FakeResponse(payload=payload)
+        collector = JustTCGCardCollector(api_key='mock-key', session=session)
+
+        cards = collector.collect(
+            limit=5,
+            set_id='sv-scarlet-violet-151-pokemon',
+            number='025/165',
+        )
+
+        self.assertEqual([card.card_number for card in cards], ['025/165', '173/165'])
+        self.assertTrue(all(card.language == 'UNKNOWN' for card in cards))
+        self.assertTrue(all(card.name_ko == '' for card in cards))
+        self.assertTrue(all(card.name_en == 'Pikachu' for card in cards))
+        self.assertEqual(collector.last_report.excluded_non_card_items, 2)
+        session.get.assert_called_once()
+
+        result = import_cards(cards)
+
+        self.assertEqual(result.created, 2)
+        self.assertTrue(
+            Card.objects.filter(
+                source='JUSTTCG',
+                external_id='ea180f3a-8c13-59b6-b887-c5cf9f7be4dd',
+                card_number='025/165',
+                language='UNKNOWN',
+            ).exists()
+        )
+        self.assertTrue(
+            Card.objects.filter(
+                source='JUSTTCG',
+                external_id='4de18046-39c2-572f-8b4c-c8371db5836f',
+                card_number='173/165',
+                language='UNKNOWN',
+            ).exists()
+        )
 
     def test_official_set_and_number_filters_are_forwarded(self):
         session = Mock()
@@ -120,8 +212,11 @@ class JustTCGCollectorTests(TestCase):
 
         result = import_cards(cards)
 
-        self.assertEqual(result.created, 1)
-        self.assertEqual(Card.objects.get().display_name, 'Pikachu')
+        self.assertEqual(result.created, 2)
+        self.assertEqual(
+            Card.objects.get(external_id='11111111-1111-5111-8111-111111111111').display_name,
+            'Pikachu',
+        )
         self.assertEqual(MarketListing.objects.count(), 0)
         self.assertEqual(PriceHistory.objects.count(), 0)
 

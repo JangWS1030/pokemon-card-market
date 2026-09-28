@@ -72,7 +72,7 @@ class Command(BaseCommand):
         if options['dry_run']:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'[DRY RUN] 저장 가능한 Korean variant Card: {len(cards)}, DB 저장 없음'
+                    f'[DRY RUN] 저장 가능한 Card: {len(cards)}, DB 저장 없음'
                 )
             )
             return
@@ -94,6 +94,7 @@ class Command(BaseCommand):
         self.stdout.write(f'- 반환 Card 수: {report.returned_cards}')
         self.stdout.write(f'- Korean variant Card 수: {report.korean_variant_cards}')
         self.stdout.write(f'- Korean variant 없는 Card 수: {report.without_korean_variant}')
+        self.stdout.write(f'- Card import에서 제외한 non-card 수: {report.excluded_non_card_items}')
         self.stdout.write(f'- 실제 한국어 이름 수: {report.korean_name_cards}')
         self.stdout.write(f'- 영문 이름만 제공된 수: {report.english_name_only_cards}')
         self.stdout.write(f'- image URL 제공 수: {report.image_url_cards}')
@@ -114,7 +115,7 @@ class Command(BaseCommand):
                 f'game={card["game"]}, set={card["set"]}, '
                 f'set_name={card["set_name"]}, number={card["number"]}, '
                 f'rarity={card["rarity"]}, variants={card["variant_count"]}, '
-                f'korean_variant={bool(card["variant_count"])}, '
+                f'korean_variant={card["has_korean_variant"]}, '
                 f'languages={card["variant_languages"]}, '
                 f'image_fields={card["image_fields"]}'
             )

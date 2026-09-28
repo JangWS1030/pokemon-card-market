@@ -26,6 +26,7 @@ class JustTCGReport:
     english_name_only_cards: int = 0
     image_url_cards: int = 0
     without_image_url: int = 0
+    excluded_non_card_items: int = 0
     request_count: int = 0
     meta: dict = field(default_factory=dict)
     metadata_keys: tuple[str, ...] = ()
@@ -58,7 +59,6 @@ class JustTCGCardCollector:
 
         params = {
             'game': 'pokemon',
-            'language': 'Korean',
             'limit': limit,
             'offset': 0,
             'include_price_history': 'false',
@@ -204,6 +204,7 @@ class JustTCGCardCollector:
                     'rarity': raw_card.get('rarity'),
                     'variant_count': len(variants),
                     'variant_languages': variant_languages,
+                    'has_korean_variant': bool(korean_variants),
                     'image_fields': image_fields,
                 }
             )
@@ -214,13 +215,18 @@ class JustTCGCardCollector:
 
             if not korean_variants:
                 report.without_korean_variant += 1
-                continue
-            report.korean_variant_cards += 1
+            else:
+                report.korean_variant_cards += 1
 
             if str(raw_card.get('game', '')).casefold() != 'pokemon':
                 raise JustTCGError('Pokemon이 아닌 Card가 응답에 포함되었습니다.')
 
-            required = ('uuid', 'name', 'set_name', 'number')
+            card_number = str(raw_card.get('number') or '').strip()
+            if not card_number or card_number.casefold() == 'n/a':
+                report.excluded_non_card_items += 1
+                continue
+
+            required = ('uuid', 'name', 'set_name')
             missing = [field for field in required if not raw_card.get(field)]
             if missing:
                 raise JustTCGError(
@@ -233,9 +239,9 @@ class JustTCGCardCollector:
                     name_ko=name if has_korean_name else '',
                     name_en=None if has_korean_name else name,
                     set_name=str(raw_card['set_name']),
-                    card_number=str(raw_card['number']),
+                    card_number=card_number,
                     rarity=(str(raw_card['rarity']) if raw_card.get('rarity') else None),
-                    language='KO',
+                    language='KO' if korean_variants else 'UNKNOWN',
                     image_url=image_url,
                     source=self.SOURCE,
                 )

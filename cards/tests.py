@@ -211,18 +211,42 @@ class CardImportServiceTests(TestCase):
         Card.objects.create(
             **common_values,
             external_id='first',
-            source='FIRST_SOURCE',
+            source='TEST_CARD_SOURCE',
         )
         Card.objects.create(
             **common_values,
             external_id='second',
-            source='SECOND_SOURCE',
+            source='TEST_CARD_SOURCE',
         )
 
         result = import_cards([self.make_card_data(external_id=None)])
 
         self.assertEqual(result.skipped, 1)
         self.assertEqual(Card.objects.count(), 2)
+
+    def test_natural_fields_do_not_match_a_different_source(self):
+        Card.objects.create(
+            external_id='demo-card',
+            name_ko='데모 카드',
+            name_en='Pikachu',
+            set_name='테스트 세트',
+            card_number='001/100',
+            language='UNKNOWN',
+            source='DEMO',
+        )
+
+        result = import_cards([
+            self.make_card_data(
+                external_id=None,
+                name_ko='',
+                language='UNKNOWN',
+                source='JUSTTCG',
+            )
+        ])
+
+        self.assertEqual(result.created, 1)
+        self.assertEqual(Card.objects.filter(source='DEMO').count(), 1)
+        self.assertEqual(Card.objects.filter(source='JUSTTCG').count(), 1)
 
     def test_import_command_does_not_insert_sample_data(self):
         output = StringIO()

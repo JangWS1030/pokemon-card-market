@@ -33,7 +33,7 @@ def card_data():
         set_name='Mock Pokemon Set',
         card_number='025/100',
         rarity='Common',
-        language='KO',
+        language='UNKNOWN',
         image_url=None,
         source='JUSTTCG',
     )
@@ -110,7 +110,7 @@ class ImportJustTCGOnceTests(TestCase):
         collector_class.assert_not_called()
 
     @patch('cards.management.commands.import_justtcg_once.JustTCGCardCollector')
-    def test_no_korean_variant_result_creates_nothing(self, collector_class):
+    def test_empty_result_creates_nothing(self, collector_class):
         collector = collector_class.return_value
         collector.collect.return_value = []
         collector.last_report = SimpleNamespace(returned_cards=1)
