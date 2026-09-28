@@ -1,15 +1,61 @@
+import hashlib
+import json
+import os
 from collections import defaultdict
 
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from .models import Card
 
 
+EBAY_DELETION_ENDPOINT = (
+    'https://pokemon-card-market.onrender.com/ebay/account-deletion/'
+)
+
+
 def health(request):
     return JsonResponse({'status': 'ok'})
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
+def ebay_account_deletion(request):
+    if request.method == 'GET':
+        challenge_code = request.GET.get('challenge_code', '')
+        verification_token = os.environ.get(
+            'EBAY_DELETION_VERIFICATION_TOKEN',
+            '',
+        ).strip()
+        if not challenge_code:
+            return JsonResponse({'error': 'invalid challenge request'}, status=400)
+        if not verification_token:
+            return JsonResponse({'error': 'webhook is not configured'}, status=503)
+
+        challenge_hash = hashlib.sha256(
+            f'{challenge_code}{verification_token}{EBAY_DELETION_ENDPOINT}'.encode('utf-8')
+        ).hexdigest()
+        return JsonResponse({'challengeResponse': challenge_hash})
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({'error': 'invalid JSON'}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({'error': 'invalid notification'}, status=400)
+
+    metadata = payload.get('metadata')
+    if metadata is not None and not isinstance(metadata, dict):
+        return JsonResponse({'error': 'invalid notification metadata'}, status=400)
+    topic = metadata.get('topic') if metadata else None
+    if topic is not None and topic != 'MARKETPLACE_ACCOUNT_DELETION':
+        return JsonResponse({'error': 'unsupported notification topic'}, status=400)
+
+    return HttpResponse(status=204)
 
 
 def home(request):
