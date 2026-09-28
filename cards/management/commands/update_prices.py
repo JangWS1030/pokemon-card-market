@@ -6,7 +6,7 @@ from django.utils import timezone
 from cards.collectors import MarketCollectorError
 from cards.collectors.markets import EbayMarketCollector
 from cards.models import Card, MarketListing, MarketRegion, MarketSource
-from cards.services.card_matching import match_card
+from cards.services.card_matching import is_listing_relevant_to_card, match_card
 from cards.services.condition_classifier import classify_condition
 from cards.services.market_importer import save_market_listing
 from cards.services.market_search import build_ebay_search_query
@@ -15,7 +15,7 @@ from cards.services.price_history import save_price_histories
 
 
 class Command(BaseCommand):
-    help = 'eBay 해외 판매가격을 수동으로 수집하고 통화별 참고 시세를 계산합니다.'
+    help = 'eBay 해외 현재 매물을 수동으로 수집하고 통화별 참고가를 계산합니다.'
 
     def add_arguments(self, parser):
         parser.add_argument('--card-id', type=int, help='특정 Card ID 한 개만 갱신합니다.')
@@ -93,7 +93,11 @@ class Command(BaseCommand):
             run_listings = []
             for market_data in market_data_items:
                 matched_card = match_card(market_data.title, Card.objects.all())
-                if matched_card is None or matched_card.pk != card.pk:
+                if (
+                    matched_card is None
+                    or matched_card.pk != card.pk
+                    or not is_listing_relevant_to_card(card, market_data.title)
+                ):
                     totals['unmatched'] += 1
                     continue
 
@@ -146,7 +150,7 @@ class Command(BaseCommand):
         self.stdout.write(
             '처리 카드: {cards}, 수집: {fetched}, 매칭: {matched}, '
             '미매칭: {unmatched}, Listing 생성: {created}, Listing 갱신: {updated}, '
-            '시세 기록: {histories}, 오류: {errors}'.format(**totals)
+            '참고가 기록: {histories}, 오류: {errors}'.format(**totals)
         )
 
     @staticmethod

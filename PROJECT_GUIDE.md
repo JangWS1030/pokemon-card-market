@@ -863,8 +863,10 @@ JustTCG 가격은 이번 Card 기본정보 import에 저장하지 않는다.
 
 eBay 공식 Browse API의 `item_summary/search`를 해외 참고 가격 출처로 사용한다.
 OAuth Client Credentials, timeout과 오류 구분, 공통 MarketData 정규화 구조를 구현했다.
-실제 개발자 인증정보가 없어 Mock 테스트까지 완료했으며 실제 호출 검증은 대기한다.
-eBay 데이터는 한국/국내 시세로 표시하지 않는다.
+Production OAuth/Browse 연결과 소량 listing 저장을 검증했다. eBay 데이터는 현재 등록된
+해외 매물의 asking price이며 판매완료 가격이나 한국/국내 실거래 시세로 표시하지 않는다.
+Browse의 `image.imageUrl`은 판매자 매물 이미지로만 보관하고 공식 카드 대표 이미지로
+사용하지 않는다.
 
 
 ## Phase 7 - 카드 매칭
@@ -897,8 +899,11 @@ eBay 데이터는 한국/국내 시세로 표시하지 않는다.
 
 ## Phase 10 - PriceHistory
 
-- 가격 기록
+- 현재 매물 참고가 기록
 - Chart.js 그래프
+
+현재 `PriceHistory`는 eBay 활성 listing의 상태·등급·통화별 통계 스냅샷이다. 향후 SOLD
+source가 추가되면 CURRENT_LISTING과 별도 타입/모델 정책으로 분리하고 기존 값과 섞지 않는다.
 
 
 ## Phase 11 - 수동 가격 갱신
@@ -1004,9 +1009,9 @@ Codex는 새로운 작업을 시작할 때:
 - [x] Phase 1 - 설계
 - [x] Phase 2 - Django 기본 프로젝트
 - [x] Phase 3 - DB
-- [x] Phase 4 - 카드 기본정보 기반 (JustTCG 실제 연결 확인, Korean variant import 대기)
+- [x] Phase 4 - 카드 기본정보 기반 (JustTCG 실제 Card Production import 확인)
 - [x] Phase 5 - 카드 화면
-- [x] Phase 6 - 판매가격 데이터 기반 (eBay Mock 검증 완료, 실제 인증 검증 대기)
+- [x] Phase 6 - 판매가격 데이터 기반 (eBay Production OAuth/Browse 및 소량 import 확인)
 - [x] Phase 7 - 카드 매칭
 - [x] Phase 8 - 상태 분류
 - [x] Phase 9 - 시세 계산
@@ -1015,13 +1020,13 @@ Codex는 새로운 작업을 시작할 때:
 - [x] Phase 12 - UI
 - [x] Phase 13 - 테스트 및 오류처리
 - [x] Phase 14 - Git/README 및 GitHub push 완료
-- [ ] Phase 15 - 배포 (Render 배포 준비 완료, 실제 서비스 생성·배포 대기)
+- [x] Phase 15 - 배포 (Render Web Service와 PostgreSQL 연결 확인)
 
 
 # 27. 현재 작업
 
-Phase 1~14와 Render 배포용 코드 준비가 완료되었다. 실제 Render 서비스와 PostgreSQL은
-생성하지 않았고 배포도 진행하지 않았다.
+Phase 1~15와 Render 배포가 완료되었다. Production PostgreSQL에서 JustTCG Card와 eBay
+현재 매물의 제한된 실데이터 파이프라인을 검증했다.
 
 현재 구현된 범위:
 
@@ -1031,7 +1036,7 @@ Phase 1~14와 Render 배포용 코드 준비가 완료되었다. 실제 Render �
 - `/admin/` Django Admin URL
 - Django 기본 migration
 - Card, MarketSource, MarketListing, PriceHistory 모델
-- `cards.0001_initial` migration
+- `cards` 모델 migrations
 - 네 모델의 Django Admin 등록
 - CardData와 CardDataCollector 기본 구조
 - Card 생성·갱신·중복 확인 import 서비스
@@ -1042,7 +1047,7 @@ Phase 1~14와 Render 배포용 코드 준비가 완료되었다. 실제 Render �
 - 설명 가능한 카드 매칭 및 RAW/PSA/BGS/CGC/SEALED/UNKNOWN 분류
 - 통화·상태·등급별 IQR/중앙값 시세 계산과 PriceHistory 저장
 - `update_prices --card-id/--limit/--dry-run` 수동 갱신 명령
-- eBay 해외 판매가격 표시와 상태·통화별 Chart.js 그래프
+- eBay 해외 현재 매물 참고가 표시와 상태·통화별 Chart.js 그래프
 - JustTCG `--query/--set/--number/--list-sets` 제한 탐색 구조
 - 재실행 가능한 DEMO seed와 실제 source 보호형 clear 명령
 - 데이터 상태 안내, 검색 UX, 반응형 상세, 404/500 페이지
@@ -1052,7 +1057,7 @@ Phase 1~14와 Render 배포용 코드 준비가 완료되었다. 실제 Render �
 - Mock/DB/UI/배포 설정 회귀 테스트
 - GitHub 원격 저장소 연결 및 기존 코드 push 완료
 
-Phase 4의 JustTCG 공식 API 연결은 실제 응답으로 확인했다. 다만 확인한 10개 Card에는
-Korean variant가 없어 Card DB import는 완료하지 않았다. eBay 판매가격 파이프라인은
-Developer 승인 대기 상태이며 Mock 테스트까지만 검증되었다. 국내 가격 데이터 출처는 계속 검토 중이며,
-확인되지 않은 API나 크롤링은 구현하지 않는다.
+JustTCG 공식 API의 실제 응답으로 Pikachu `025/165` 기본정보를 저장했고, Korean variant가
+없는 정상 Card는 `language=UNKNOWN`으로 보존한다. eBay Production OAuth/Browse 연결과
+현재 매물 3건 저장을 확인했다. 이 가격은 판매완료 거래가 아닌 현재 asking price다. 국내
+판매완료 가격 출처는 계속 검토 중이며, 확인되지 않은 API나 크롤링은 구현하지 않는다.

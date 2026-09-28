@@ -312,8 +312,8 @@ class CardPageTests(TestCase):
     def test_card_detail_without_prices_is_safe(self):
         response = self.client.get(reverse('card-detail', args=[self.card.pk]))
 
-        self.assertContains(response, '해외 참고 가격 데이터가 없습니다.')
-        self.assertContains(response, '국내 참고 시세 데이터 준비 중')
+        self.assertContains(response, 'eBay 현재 매물 데이터가 없습니다.')
+        self.assertContains(response, '국내 판매완료 데이터는 아직 연결되지 않았습니다.')
         self.assertContains(response, '아직 계산된 참고 가격이 없습니다.')
 
     def test_english_name_is_used_when_korean_name_is_empty(self):
@@ -367,8 +367,8 @@ class CardPageTests(TestCase):
         response = self.client.get(reverse('card-detail', args=[self.card.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '참고 시세')
-        self.assertContains(response, '최근 시세 계산')
+        self.assertContains(response, '현재 매물 중앙값')
+        self.assertContains(response, '최근 참고가 계산')
         self.assertContains(response, 'PSA 10.0')
 
     def test_card_list_uses_pagination(self):

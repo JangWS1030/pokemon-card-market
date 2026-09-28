@@ -1,6 +1,36 @@
 import re
 
-from .normalization import normalize_card_number, normalize_text
+from .condition_classifier import is_bundle_listing
+from .normalization import canonical_card_name, normalize_card_number, normalize_text
+
+
+CARD_NUMBER_PATTERN = re.compile(r'(?<!\d)#?\d{1,4}\s*/\s*\d{1,4}(?!\d)')
+
+
+def is_listing_relevant_to_card(card, title):
+    """단일 카드 매물 제목이 대상 카드와 관련 있는지 보수적으로 판정한다."""
+
+    normalized_title = normalize_text(title)
+    if not normalized_title or is_bundle_listing(normalized_title):
+        return False
+
+    names = (card.name_en, card.name_ko)
+    canonical_names = [
+        canonical_card_name(name, card.card_number)
+        for name in names
+        if canonical_card_name(name, card.card_number)
+    ]
+    if not any(_phrase_matches(name, normalized_title) for name in canonical_names):
+        return False
+
+    target_number = normalize_card_number(card.card_number).lstrip('#')
+    title_numbers = {
+        normalize_card_number(match.group()).lstrip('#')
+        for match in CARD_NUMBER_PATTERN.finditer(normalized_title)
+    }
+    if title_numbers and (not target_number or title_numbers != {target_number}):
+        return False
+    return True
 
 
 def match_card(title, candidates):
@@ -47,7 +77,17 @@ def _card_number_matches(card, normalized_title):
 
 def _card_name_matches(card, normalized_title):
     names = (card.name_en, card.name_ko)
-    return any(normalize_text(name) in normalized_title for name in names if normalize_text(name))
+    canonical_names = [canonical_card_name(name, card.card_number) for name in names]
+    return any(_phrase_matches(name, normalized_title) for name in canonical_names if name)
+
+
+def _phrase_matches(phrase, normalized_title):
+    return bool(
+        re.search(
+            rf'(?<![a-z0-9]){re.escape(phrase)}(?![a-z0-9])',
+            normalized_title,
+        )
+    )
 
 
 def _set_name_matches(card, normalized_title):

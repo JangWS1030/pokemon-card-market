@@ -1,5 +1,7 @@
 from django.db import models
 
+from cards.services.normalization import contains_card_number
+
 
 class Condition(models.TextChoices):
     RAW = 'RAW', 'RAW'
@@ -49,6 +51,13 @@ class Card(models.Model):
     def display_name(self):
         return self.name_ko or self.name_en or '이름 없음'
 
+    @property
+    def display_name_with_number(self):
+        name = self.display_name
+        if not self.card_number or contains_card_number(name, self.card_number):
+            return name
+        return f'{name} - {self.card_number}'
+
 
 class MarketSource(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -77,6 +86,7 @@ class MarketListing(models.Model):
     price = models.DecimalField(max_digits=14, decimal_places=2)
     currency = models.CharField(max_length=3)
     url = models.URLField(max_length=2048)
+    image_url = models.URLField(max_length=2048, blank=True, default='')
     condition = models.CharField(max_length=10, choices=Condition.choices)
     grading_company = models.CharField(
         max_length=3,

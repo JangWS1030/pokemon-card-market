@@ -6,7 +6,7 @@ from django.db import transaction
 from cards.collectors import MarketCollectorError
 from cards.collectors.markets import EbayMarketCollector
 from cards.models import Card, Condition, MarketListing, MarketRegion, MarketSource
-from cards.services.card_matching import match_card
+from cards.services.card_matching import is_listing_relevant_to_card
 from cards.services.condition_classifier import classify_condition
 from cards.services.market_importer import save_market_listing
 from cards.services.market_search import build_ebay_search_query
@@ -75,7 +75,7 @@ class Command(BaseCommand):
         skipped = 0
         unknown_condition = 0
         for market_data in market_data_items:
-            if match_card(market_data.title, [card]) is None:
+            if not is_listing_relevant_to_card(card, market_data.title):
                 skipped += 1
                 continue
             condition_result = classify_condition(market_data.title, card_matched=True)
@@ -114,7 +114,7 @@ class Command(BaseCommand):
                 history_count = len(save_price_histories(calculations))
 
         self.stdout.write(self.style.SUCCESS('eBay one-time import completed.'))
-        self.stdout.write(f'Card: {card.display_name} {card.card_number}')
+        self.stdout.write(f'Card: {card.display_name_with_number}')
         self.stdout.write(f'Query: {query}')
         self.stdout.write(f'Returned: {len(market_data_items)}')
         self.stdout.write(f'Created: {created}')

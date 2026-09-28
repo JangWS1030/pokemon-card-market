@@ -69,6 +69,38 @@ body {
     text-align: center;
 }
 
+.listing-thumbnail,
+.listing-image-placeholder {
+    display: block;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.5rem;
+}
+
+.listing-thumbnail {
+    object-fit: cover;
+    background: #f1f3f5;
+}
+
+.listing-image-placeholder {
+    padding: 0.65rem 0.25rem;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.listing-title {
+    display: -webkit-box;
+    min-width: 12rem;
+    max-width: 24rem;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
 .detail-list dt {
     color: #6c757d;
 }

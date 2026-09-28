@@ -19,7 +19,8 @@ GRADE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 BUNDLE_PATTERN = re.compile(
-    r'(?<![a-z0-9])(lot|bundle|bulk|collection|playset|x\s*[2-9]|[2-9]\s*cards?)(?![a-z0-9])'
+    r'(?<![a-z0-9])(lot|bundle|bulk|collection|playset|x\s*\d+|\d+\s*cards?'
+    r'|random\s+card|complete\s+set|you\s+pick)(?![a-z0-9])'
     r'|묶음|일괄',
     re.IGNORECASE,
 )
@@ -29,6 +30,10 @@ SEALED_PATTERN = re.compile(
 )
 RAW_PATTERN = re.compile(r'(?<![a-z0-9])(raw|ungraded)(?![a-z0-9])', re.IGNORECASE)
 COMPANY_PATTERN = re.compile(r'(?<![a-z0-9])(psa|bgs|cgc)(?![a-z0-9])', re.IGNORECASE)
+
+
+def is_bundle_listing(title):
+    return bool(BUNDLE_PATTERN.search(normalize_text(title)))
 
 
 def classify_condition(title, card_matched=False):

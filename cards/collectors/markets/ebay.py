@@ -142,6 +142,13 @@ class EbayMarketCollector:
         if urlparse(item_url).scheme not in ('http', 'https'):
             raise InvalidResponseError('eBay 상품 URL 형식이 올바르지 않습니다.')
 
+        image_url = ''
+        image_data = item.get('image')
+        if isinstance(image_data, dict):
+            candidate = image_data.get('imageUrl')
+            if isinstance(candidate, str) and urlparse(candidate).scheme in ('http', 'https'):
+                image_url = candidate
+
         return MarketData(
             external_id=str(required_values['itemId']),
             title=str(required_values['title']),
@@ -150,6 +157,7 @@ class EbayMarketCollector:
             url=item_url,
             collected_at=timezone.now(),
             source='EBAY',
+            image_url=image_url,
         )
 
     @staticmethod

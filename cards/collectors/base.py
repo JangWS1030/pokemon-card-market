@@ -43,6 +43,7 @@ class MarketData:
     url: str
     collected_at: datetime
     source: str
+    image_url: str = ''
 
 
 class MarketCollectorError(Exception):

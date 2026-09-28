@@ -160,14 +160,15 @@ class ImportEbayOnceTests(TestCase):
             query='Pikachu 025/165 SV: Scarlet & Violet 151 Pokemon',
             limit=3,
         )
-        self.assertEqual(MarketListing.objects.count(), 3)
+        self.assertEqual(MarketListing.objects.count(), 2)
         self.assertEqual(
             set(MarketListing.objects.values_list('condition', flat=True)),
-            {Condition.RAW, Condition.PSA, Condition.UNKNOWN},
+            {Condition.RAW, Condition.PSA},
         )
         self.assertEqual(PriceHistory.objects.count(), 2)
         self.assertIn('Returned: 3', output.getvalue())
-        self.assertIn('Unknown condition: 1', output.getvalue())
+        self.assertIn('Skipped: 1', output.getvalue())
+        self.assertIn('Unknown condition: 0', output.getvalue())
         self.assertNotIn('mock-client-id', output.getvalue())
         self.assertNotIn('mock-client-secret', output.getvalue())
 

@@ -303,14 +303,22 @@ Collector가 담당하지 않는 일:
 
 ### 7.3 MarketCollector
 
-반환할 공통 데이터는 `external_id`, 제목, 가격, 통화, URL, 수집 시각, 출처 코드다.
+반환할 공통 데이터는 `external_id`, 제목, 가격, 통화, URL, 선택적 매물 이미지 URL,
+수집 시각, 출처 코드다.
 카드 FK, 상태, 등급은 Collector가 임의로 만들지 않고 이후 서비스가 결정한다.
 
 판매가격 출처로 공식 eBay Browse API의 `item_summary/search`를 선택해
 `EbayMarketCollector`를 구현했다. Application access token은 OAuth Client Credentials로
 메모리에만 받아 만료 전까지 재사용한다. Collector는 카드 FK나 상태를 결정하지 않는다.
 eBay 데이터는 `GLOBAL`인 해외 참고 가격이며 국내 시세로 취급하지 않는다. 실제 인증정보가
-없으므로 네트워크 성공 검증은 대기하고, 공식 응답 형태의 Mock으로 파싱과 오류를 검증한다.
+있으며 Production 연결과 제한된 소량 수집을 검증했다. 공식 응답의 `image.imageUrl`은
+eBay 판매자 매물 이미지로만 저장한다. 공식 카드 artwork로 보거나 `Card.image_url`로
+복사하지 않는다.
+
+JustTCG v1 Card schema에는 현재 공식 대표 이미지 URL 필드가 없다. 따라서 Card metadata는
+JustTCG에서 가져오되 대표 이미지는 빈 값일 수 있다. 기존 image 이름 fallback은 호환용
+방어 코드로 유지하며 URL을 추측하지 않는다. 향후 이용 조건이 명확한 합법적 카드 이미지
+provider를 별도로 연결한다(TODO).
 
 ## 8. 카드 기본정보 자동 등록 흐름
 
@@ -344,7 +352,7 @@ eBay 데이터는 `GLOBAL`인 해외 참고 가격이며 국내 시세로 취급
 → 활성 상품을 Card + condition + grading_score + currency별로 묶음
 → 유효하지 않은 가격 제외 및 이상치 처리
 → median, average, min, max, listing_count 계산
-→ PriceHistory 저장
+→ 현재 매물 참고가 PriceHistory 저장
 → 생성·갱신·미매칭·오류·계산 결과를 콘솔에 표시
 ```
 
@@ -434,7 +442,10 @@ MarketListing만 사용한다. 선택한 판매 출처 중 하나라도 갱신�
 상품은 UNKNOWN과 마찬가지로 대표 시세 계산에서 제외한다.
 
 `MarketListing.currency`와 `PriceHistory.currency`로 통화를 구분한다. 다른 통화를
-합산하거나 환율 변환하지 않는다.
+합산하거나 환율 변환하지 않는다. 현재 PriceHistory는 eBay 활성 매물의 asking price
+통계 이력이지 판매완료 거래 이력이 아니다. SOLD source가 추가되면 CURRENT_LISTING과
+분리하며, 국내 판매완료 데이터는 아직 연결하지 않는다. sold source가 없는 현재는
+`price_type` 필드를 미리 추가하지 않는다.
 
 ## 14. 웹 URL 구조
 

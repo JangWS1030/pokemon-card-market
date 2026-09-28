@@ -17,9 +17,9 @@
             {% if card.image_url %}
             <img src="{{ card.image_url }}" class="detail-image" alt="{{ card.display_name }} 카드 이미지"
                  onerror="this.hidden=true; this.nextElementSibling.hidden=false">
-            <div class="image-placeholder" hidden>이미지를 불러올 수 없습니다.</div>
+            <div class="image-placeholder" hidden>카드 대표 이미지를 불러올 수 없습니다.</div>
             {% else %}
-            <div class="image-placeholder">등록된 이미지가 없습니다.</div>
+            <div class="image-placeholder">카드 대표 이미지 준비 중</div>
             {% endif %}
         </div>
     </div>
@@ -37,15 +37,16 @@
 </section>
 
 <section class="mb-5" aria-labelledby="reference-price-title">
-    <h2 class="h4" id="reference-price-title">참고 가격</h2>
+    <h2 class="h4" id="reference-price-title">eBay 해외 현재 매물 참고가</h2>
     {% if latest_price_history %}
     <article class="reference-price-card">
-        <p class="small text-secondary mb-1">최근 계산된 {{ latest_price_history.condition }}{% if latest_price_history.grading_score %} {{ latest_price_history.grading_score }}{% endif %} 참고 시세</p>
+        <p class="small text-secondary mb-1">현재 매물 중앙값</p>
         <p class="display-6 fw-bold mb-1">
             {% if latest_price_history.currency == 'KRW' %}₩{% elif latest_price_history.currency == 'USD' %}${% elif latest_price_history.currency == 'EUR' %}€{% endif %}{{ latest_price_history.median_price|floatformat:'2g' }}
             <span class="fs-6 text-secondary">{{ latest_price_history.currency }}</span>
         </p>
-        <p class="small text-secondary mb-0">통화별 값이며 환율 변환이나 합산을 하지 않습니다.</p>
+        <p class="small mb-1">{{ latest_price_history.condition }}{% if latest_price_history.grading_score %} {{ latest_price_history.grading_score }}{% endif %} · 데이터 {{ latest_price_history.listing_count }}건</p>
+        <p class="small text-secondary mb-0">현재 eBay에 등록된 판매 매물을 기준으로 계산한 참고 가격입니다. 실제 판매완료 가격이나 국내 실거래 시세가 아닙니다. 통화별 값은 환율 변환하거나 합산하지 않습니다.</p>
     </article>
     {% else %}
     <div class="empty-panel text-center text-secondary py-5">아직 계산된 참고 가격이 없습니다.</div>
@@ -54,8 +55,8 @@
 
 <section class="mb-5" aria-labelledby="condition-price-title">
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-        <h2 class="h4 mb-0" id="condition-price-title">상태·등급·통화별 가격</h2>
-        {% if latest_price_history %}<span class="small text-secondary">최근 시세 계산 {{ latest_price_history.calculated_at|date:'Y.m.d H:i' }}</span>{% endif %}
+        <h2 class="h4 mb-0" id="condition-price-title">상태·등급·통화별 현재 매물 통계</h2>
+        {% if latest_price_history %}<span class="small text-secondary">최근 참고가 계산 {{ latest_price_history.calculated_at|date:'Y.m.d H:i' }}</span>{% endif %}
     </div>
     {% if price_histories %}
     <div class="row g-3">
@@ -67,10 +68,11 @@
                     <span class="badge text-bg-light border">{{ history.currency }}</span>
                 </div>
                 {% if is_demo %}<p class="small text-warning-emphasis">DEMO · 실제 시세 아님</p>{% endif %}
-                <p class="small text-secondary mb-1">참고 시세</p>
+                <p class="small text-secondary mb-1">현재 매물 중앙값</p>
                 <p class="h3 fw-bold">
                     {% if history.currency == 'KRW' %}₩{% elif history.currency == 'USD' %}${% elif history.currency == 'EUR' %}€{% endif %}{{ history.median_price|floatformat:'2g' }}
                 </p>
+                <p class="small text-secondary">현재 활성 eBay listing을 기준으로 계산</p>
                 <dl class="row small mb-0">
                     <dt class="col-5">평균</dt><dd class="col-7">{{ history.average_price|floatformat:'2g' }}</dd>
                     <dt class="col-5">최저</dt><dd class="col-7">{{ history.min_price|floatformat:'2g' }}</dd>
@@ -88,34 +90,36 @@
 
 <section class="mb-5" aria-labelledby="listing-title">
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-        <div><h2 class="h4 mb-1" id="listing-title">판매 Listing</h2><p class="small text-secondary mb-0">eBay 데이터는 한국 시세가 아닌 해외 참고 가격입니다.</p></div>
+        <div><h2 class="h4 mb-1" id="listing-title">eBay 현재 판매 매물</h2><p class="small text-secondary mb-0">아래 가격은 현재 eBay에 등록된 판매 매물입니다. 판매완료된 거래 가격이 아닙니다.</p></div>
         {% if latest_listing %}<span class="small text-secondary">최근 수집 {{ latest_listing.collected_at|date:'Y.m.d H:i' }}</span>{% endif %}
     </div>
     {% if market_listings %}
     <div class="table-responsive bg-white border rounded-3">
         <table class="table align-middle mb-0">
-            <thead><tr><th>판매처</th><th>가격</th><th>상태</th><th>등급</th><th>수집 시간</th><th>링크</th></tr></thead>
+            <thead><tr><th>이미지</th><th>상품명</th><th>가격</th><th>상태</th><th>등급</th><th>판매처</th><th>수집 시간</th><th>링크</th></tr></thead>
             <tbody>{% for listing in market_listings %}<tr>
-                <td>{{ listing.market_source.name }} {% if listing.market_source.code == 'DEMO' %}<span class="badge text-bg-warning">DEMO · 테스트</span>{% elif listing.market_source.code == 'EBAY' %}<span class="badge text-bg-info">eBay 해외 판매가격</span>{% endif %}</td>
+                <td>{% if listing.image_url %}<img class="listing-thumbnail" src="{{ listing.image_url }}" alt="{{ listing.title }} 매물 이미지" loading="lazy">{% else %}<span class="listing-image-placeholder">이미지 없음</span>{% endif %}</td>
+                <td><span class="listing-title" title="{{ listing.title }}">{{ listing.title }}</span></td>
                 <td class="fw-semibold text-nowrap">{% if listing.currency == 'KRW' %}₩{{ listing.price|floatformat:'0g' }}{% elif listing.currency == 'USD' %}${{ listing.price|floatformat:'2g' }}{% elif listing.currency == 'EUR' %}€{{ listing.price|floatformat:'2g' }}{% else %}{{ listing.price|floatformat:'2g' }}{% endif %} <span class="small text-secondary">{{ listing.currency }}</span></td>
                 <td><span class="badge text-bg-secondary">{{ listing.condition }}</span></td>
                 <td>{% if listing.grading_company %}{{ listing.grading_company }}{% endif %}{% if listing.grading_score %} {{ listing.grading_score }}{% endif %}{% if not listing.grading_company and not listing.grading_score %}-{% endif %}</td>
+                <td>{{ listing.market_source.name }} {% if listing.market_source.code == 'DEMO' %}<span class="badge text-bg-warning">DEMO · 테스트</span>{% elif listing.market_source.code == 'EBAY' %}<span class="badge text-bg-info">eBay 해외 현재 매물</span>{% endif %}</td>
                 <td class="text-nowrap">{{ listing.collected_at|date:'Y.m.d H:i' }}</td>
                 <td><a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">원본 보기</a></td>
             </tr>{% endfor %}</tbody>
         </table>
     </div>
     {% else %}
-    <div class="empty-panel text-center text-secondary py-5">해외 참고 가격 데이터가 없습니다.<br><span class="small">국내 참고 시세 데이터 준비 중</span></div>
+    <div class="empty-panel text-center text-secondary py-5">eBay 현재 매물 데이터가 없습니다.<br><span class="small">국내 판매완료 데이터는 아직 연결되지 않았습니다.</span></div>
     {% endif %}
 </section>
 
 <section class="mb-5" aria-labelledby="price-chart-title">
-    <h2 class="h4" id="price-chart-title">가격 변화</h2>
+    <h2 class="h4" id="price-chart-title">현재 매물 참고가 변화</h2>
     {% if price_histories %}
     <div class="bg-white border rounded-3 p-3 p-md-4">
-        <p class="small text-secondary">조건·등급·통화가 같은 기록만 하나의 선으로 연결합니다.</p>
-        <canvas id="price-history-chart" aria-label="조건, 등급, 통화별 참고 가격 변화 그래프" role="img"></canvas>
+        <p class="small text-secondary">동일한 상태·등급·통화 그룹의 현재 매물 중앙값 변화를 표시합니다.</p>
+        <canvas id="price-history-chart" aria-label="조건, 등급, 통화별 현재 매물 참고가 변화 그래프" role="img"></canvas>
     </div>
     {{ price_chart_data|json_script:'price-chart-data' }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
@@ -123,7 +127,7 @@
         const chartData = JSON.parse(document.getElementById('price-chart-data').textContent);
         new Chart(document.getElementById('price-history-chart'), {
             type: 'line', data: chartData,
-            options: {responsive: true, parsing: false, scales: {x: {type: 'category', title: {display: true, text: '계산 시간'}}, y: {beginAtZero: false, title: {display: true, text: '참고 가격'}}}}
+            options: {responsive: true, parsing: false, scales: {x: {type: 'category', title: {display: true, text: '계산 시간'}}, y: {beginAtZero: false, title: {display: true, text: '현재 매물 참고가'}}}}
         });
     </script>
     {% else %}<div class="empty-panel text-center text-secondary py-5">그래프로 표시할 가격 기록이 없습니다.</div>{% endif %}
