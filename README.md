@@ -1,5 +1,8 @@
 # Pokemon Card Market
 
+> 무료 GitHub Actions 수동 수집 workflow의 설정·보안·운영 방법은
+> [추가 운영비 0원 수집 스케줄러](docs/FREE_SCHEDULER.md)를 참고한다.
+
 한국판 포켓몬 카드를 중심으로 검색하고, 수집된 국내외 시장 데이터를
 가격 유형·상태·등급·통화별 참고 가격으로
 보여주는 Django 프로젝트다. 공식 시장가나 실시간 국내 시세를 주장하지 않으며,

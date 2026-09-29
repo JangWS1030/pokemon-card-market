@@ -33,6 +33,17 @@ class CardDataCollector:
 
 
 @dataclass(frozen=True, slots=True)
+class RequestSafetyPolicy:
+    """향후 HTTP collector가 명시적으로 따라야 하는 보수적인 요청 한도다."""
+
+    timeout_seconds: int = 10
+    max_pages: int = 1
+    max_items: int = 20
+    retry_limit: int = 0
+    request_budget: int = 1
+
+
+@dataclass(frozen=True, slots=True)
 class MarketData:
     """판매 데이터 Collector가 반환하는 공통 형식이다."""
 

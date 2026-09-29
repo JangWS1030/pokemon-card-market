@@ -10,6 +10,7 @@ from .base import (
     MissingCredentialsError,
     MissingFieldError,
     RateLimitError,
+    RequestSafetyPolicy,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     'MissingCredentialsError',
     'MissingFieldError',
     'RateLimitError',
+    'RequestSafetyPolicy',
 ]
