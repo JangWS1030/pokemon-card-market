@@ -29,6 +29,7 @@ class MarketListingAdmin(admin.ModelAdmin):
     list_display = (
         'card',
         'market_source',
+        'listing_type',
         'price',
         'currency',
         'condition',
@@ -46,6 +47,7 @@ class MarketListingAdmin(admin.ModelAdmin):
     )
     list_filter = (
         'market_source',
+        'listing_type',
         'currency',
         'condition',
         'grading_company',
@@ -57,6 +59,7 @@ class MarketListingAdmin(admin.ModelAdmin):
 class PriceHistoryAdmin(admin.ModelAdmin):
     list_display = (
         'card',
+        'listing_type',
         'condition',
         'grading_score',
         'currency',
@@ -66,4 +69,4 @@ class PriceHistoryAdmin(admin.ModelAdmin):
         'calculated_at',
     )
     search_fields = ('card__name_ko', 'card__card_number')
-    list_filter = ('condition', 'grading_score', 'currency', 'calculated_at')
+    list_filter = ('listing_type', 'condition', 'grading_score', 'currency', 'calculated_at')

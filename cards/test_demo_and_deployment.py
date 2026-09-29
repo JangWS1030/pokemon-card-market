@@ -64,9 +64,9 @@ class DemoDataTests(TestCase):
         self.assertContains(detail_response, '실제 시세가 아닙니다')
         self.assertContains(detail_response, 'price-chart-data')
         labels = {item['label'] for item in detail_response.context['price_chart_data']['datasets']}
-        self.assertIn('RAW / USD', labels)
-        self.assertIn('RAW / KRW', labels)
-        self.assertIn('PSA 10.0 / USD', labels)
+        self.assertIn('현재 매물 / RAW / USD', labels)
+        self.assertIn('현재 매물 / RAW / KRW', labels)
+        self.assertIn('현재 매물 / PSA 10.0 / USD', labels)
 
 
 class EnvironmentParsingTests(TestCase):

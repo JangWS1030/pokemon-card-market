@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .models import Card
+from .models import Card, ListingType, MarketRegion
 
 
 EBAY_DELETION_ENDPOINT = (
@@ -106,13 +106,53 @@ def card_detail(request, pk):
     price_histories = list(
         card.price_histories.exclude(condition='UNKNOWN').order_by('-calculated_at')
     )
+    domestic_sold_histories = [
+        history
+        for history in price_histories
+        if history.listing_type == ListingType.SOLD and history.currency == 'KRW'
+    ]
+    domestic_current_histories = [
+        history
+        for history in price_histories
+        if history.listing_type == ListingType.CURRENT_LISTING and history.currency == 'KRW'
+    ]
+    auction_result_histories = [
+        history
+        for history in price_histories
+        if history.listing_type == ListingType.AUCTION_RESULT and history.currency == 'KRW'
+    ]
+    overseas_current_histories = [
+        history
+        for history in price_histories
+        if history.listing_type == ListingType.CURRENT_LISTING and history.currency != 'KRW'
+    ]
+    domestic_listings = [
+        listing
+        for listing in market_listings
+        if listing.market_source.market_region == MarketRegion.KR
+    ]
+    ebay_listings = [
+        listing for listing in market_listings if listing.market_source.code == 'EBAY'
+    ]
+    preferred_histories = (
+        domestic_sold_histories
+        or domestic_current_histories
+        or overseas_current_histories
+        or auction_result_histories
+    )
 
     context = {
         'card': card,
         'market_listings': market_listings,
         'price_histories': price_histories,
+        'domestic_sold_histories': domestic_sold_histories,
+        'domestic_current_histories': domestic_current_histories,
+        'auction_result_histories': auction_result_histories,
+        'overseas_current_histories': overseas_current_histories,
+        'domestic_listings': domestic_listings,
+        'ebay_listings': ebay_listings,
         'latest_listing': market_listings[0] if market_listings else None,
-        'latest_price_history': price_histories[0] if price_histories else None,
+        'latest_price_history': preferred_histories[0] if preferred_histories else None,
         'price_chart_data': _build_price_chart_data(reversed(price_histories)),
         'is_demo': card.source == 'DEMO',
     }
@@ -123,7 +163,10 @@ def _build_price_chart_data(price_histories):
     grouped_points = defaultdict(list)
     for history in price_histories:
         grade = f' {history.grading_score}' if history.grading_score is not None else ''
-        label = f'{history.condition}{grade} / {history.currency}'
+        label = (
+            f'{history.get_listing_type_display()} / '
+            f'{history.condition}{grade} / {history.currency}'
+        )
         grouped_points[label].append(
             {
                 'x': history.calculated_at.isoformat(),

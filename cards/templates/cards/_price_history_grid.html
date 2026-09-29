@@ -1,0 +1,30 @@
+{% if histories %}
+<div class="row g-3">
+    {% for history in histories %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <article class="bg-white border rounded-3 p-4 h-100">
+            <div class="d-flex justify-content-between gap-2 mb-3">
+                <span class="badge text-bg-primary">{{ history.condition }}{% if history.grading_score %} {{ history.grading_score }}{% endif %}</span>
+                <span class="badge text-bg-light border">{{ history.currency }}</span>
+            </div>
+            {% if is_demo %}<p class="small text-warning-emphasis">DEMO · 실제 데이터 아님</p>{% endif %}
+            <p class="small text-secondary mb-1">{{ value_label }}</p>
+            <p class="h3 fw-bold">
+                {% if history.currency == 'KRW' %}₩{% elif history.currency == 'USD' %}${% elif history.currency == 'EUR' %}€{% endif %}{{ history.median_price|floatformat:'2g' }}
+                <span class="fs-6 text-secondary">{{ history.currency }}</span>
+            </p>
+            <p class="small mb-1">{{ history.condition }}{% if history.grading_score %} {{ history.grading_score }}{% endif %} · 데이터 {{ history.listing_count }}건</p>
+            <p class="small text-secondary">{{ calculation_note }}</p>
+            <dl class="row small mb-0">
+                <dt class="col-5">평균</dt><dd class="col-7">{{ history.average_price|floatformat:'2g' }}</dd>
+                <dt class="col-5">최저</dt><dd class="col-7">{{ history.min_price|floatformat:'2g' }}</dd>
+                <dt class="col-5">최고</dt><dd class="col-7">{{ history.max_price|floatformat:'2g' }}</dd>
+                <dt class="col-5">데이터 수</dt><dd class="col-7">{{ history.listing_count }}</dd>
+            </dl>
+        </article>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-panel text-center text-secondary py-4">{{ empty_message }}</div>
+{% endif %}

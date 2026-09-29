@@ -17,6 +17,7 @@ class OutlierResult:
 @dataclass(frozen=True, slots=True)
 class PriceCalculation:
     card_id: int
+    listing_type: str
     condition: str
     grading_score: Decimal | None
     currency: str
@@ -37,16 +38,24 @@ def calculate_price_groups(listings):
         if not listing.is_active or price <= 0 or listing.condition == 'UNKNOWN':
             continue
         currency = listing.currency.upper()
-        key = (listing.card_id, listing.condition, listing.grading_score, currency)
+        listing_type = getattr(listing, 'listing_type', 'CURRENT_LISTING')
+        key = (
+            listing.card_id,
+            listing_type,
+            listing.condition,
+            listing.grading_score,
+            currency,
+        )
         groups[key].append(price)
 
     calculations = []
-    for (card_id, condition, grading_score, currency), prices in groups.items():
+    for (card_id, listing_type, condition, grading_score, currency), prices in groups.items():
         outlier_result = remove_iqr_outliers(prices)
         final_prices = outlier_result.prices
         calculations.append(
             PriceCalculation(
                 card_id=card_id,
+                listing_type=listing_type,
                 condition=condition,
                 grading_score=grading_score,
                 currency=currency,

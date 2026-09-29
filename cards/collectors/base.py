@@ -44,6 +44,8 @@ class MarketData:
     collected_at: datetime
     source: str
     image_url: str = ''
+    listing_type: str = 'CURRENT_LISTING'
+    occurred_at: datetime | None = None
 
 
 class MarketCollectorError(Exception):

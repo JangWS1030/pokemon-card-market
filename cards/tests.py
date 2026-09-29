@@ -313,8 +313,8 @@ class CardPageTests(TestCase):
         response = self.client.get(reverse('card-detail', args=[self.card.pk]))
 
         self.assertContains(response, 'eBay 현재 매물 데이터가 없습니다.')
-        self.assertContains(response, '국내 판매완료 데이터는 아직 연결되지 않았습니다.')
-        self.assertContains(response, '아직 계산된 참고 가격이 없습니다.')
+        self.assertContains(response, '아직 수집된 국내 실거래 데이터가 없습니다.')
+        self.assertContains(response, '아직 수집된 국내 매물이 없습니다.')
 
     def test_english_name_is_used_when_korean_name_is_empty(self):
         self.card.name_ko = ''
@@ -368,7 +368,7 @@ class CardPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '현재 매물 중앙값')
-        self.assertContains(response, '최근 참고가 계산')
+        self.assertContains(response, 'CURRENT_LISTING 데이터만 기준으로 계산')
         self.assertContains(response, 'PSA 10.0')
 
     def test_card_list_uses_pagination(self):

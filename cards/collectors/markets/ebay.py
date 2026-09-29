@@ -158,6 +158,7 @@ class EbayMarketCollector:
             collected_at=timezone.now(),
             source='EBAY',
             image_url=image_url,
+            listing_type='CURRENT_LISTING',
         )
 
     @staticmethod

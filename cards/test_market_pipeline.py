@@ -312,6 +312,7 @@ class PricePipelineTests(TestCase):
         self.assertFalse(updated.created)
         self.assertEqual(MarketListing.objects.count(), 1)
         self.assertEqual(MarketListing.objects.get().price, Decimal('12.75'))
+        self.assertEqual(MarketListing.objects.get().listing_type, 'CURRENT_LISTING')
 
     def test_price_history_keeps_currency(self):
         calculations = calculate_price_groups([self.listing(19.99)])

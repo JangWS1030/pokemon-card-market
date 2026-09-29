@@ -11,6 +11,7 @@ def save_price_histories(calculations, calculated_at=None):
         histories.append(
             PriceHistory.objects.create(
                 card_id=calculation.card_id,
+                listing_type=calculation.listing_type,
                 condition=calculation.condition,
                 grading_score=calculation.grading_score,
                 currency=calculation.currency,

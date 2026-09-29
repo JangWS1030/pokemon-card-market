@@ -18,6 +18,12 @@ class GradingCompany(models.TextChoices):
     CGC = 'CGC', 'CGC'
 
 
+class ListingType(models.TextChoices):
+    CURRENT_LISTING = 'CURRENT_LISTING', '현재 매물'
+    SOLD = 'SOLD', '판매 완료'
+    AUCTION_RESULT = 'AUCTION_RESULT', '경매 결과'
+
+
 class MarketRegion(models.TextChoices):
     KR = 'KR', '국내'
     GLOBAL = 'GLOBAL', '해외'
@@ -58,6 +64,15 @@ class Card(models.Model):
             return name
         return f'{name} - {self.card_number}'
 
+    @property
+    def source_display_name(self):
+        names = {
+            'POKEMON_KOREA': 'Pokémon Card Game Korea',
+            'JUSTTCG': 'JustTCG',
+            'DEMO': 'DEMO',
+        }
+        return names.get(self.source, self.source)
+
 
 class MarketSource(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -87,6 +102,11 @@ class MarketListing(models.Model):
     currency = models.CharField(max_length=3)
     url = models.URLField(max_length=2048)
     image_url = models.URLField(max_length=2048, blank=True, default='')
+    listing_type = models.CharField(
+        max_length=20,
+        choices=ListingType.choices,
+        default=ListingType.CURRENT_LISTING,
+    )
     condition = models.CharField(max_length=10, choices=Condition.choices)
     grading_company = models.CharField(
         max_length=3,
@@ -101,6 +121,7 @@ class MarketListing(models.Model):
         blank=True,
     )
     is_active = models.BooleanField(default=True)
+    occurred_at = models.DateTimeField(null=True, blank=True)
     collected_at = models.DateTimeField()
 
     class Meta:
@@ -122,6 +143,11 @@ class PriceHistory(models.Model):
         related_name='price_histories',
     )
     condition = models.CharField(max_length=10, choices=Condition.choices)
+    listing_type = models.CharField(
+        max_length=20,
+        choices=ListingType.choices,
+        default=ListingType.CURRENT_LISTING,
+    )
     currency = models.CharField(max_length=3, default='KRW')
     grading_score = models.DecimalField(
         max_digits=3,

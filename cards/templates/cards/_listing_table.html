@@ -1,0 +1,20 @@
+{% if listings %}
+<div class="table-responsive bg-white border rounded-3">
+    <table class="table align-middle mb-0">
+        <thead><tr><th>이미지</th><th>상품명</th><th>구분</th><th>가격</th><th>상태</th><th>등급</th><th>판매처</th><th>기준/수집 시간</th><th>링크</th></tr></thead>
+        <tbody>{% for listing in listings %}<tr>
+            <td>{% if listing.image_url %}<img class="listing-thumbnail" src="{{ listing.image_url }}" alt="{{ listing.title }} 매물 이미지" loading="lazy">{% else %}<span class="listing-image-placeholder">이미지 없음</span>{% endif %}</td>
+            <td><span class="listing-title" title="{{ listing.title }}">{{ listing.title }}</span></td>
+            <td><span class="badge text-bg-light border">{{ listing.get_listing_type_display }}</span></td>
+            <td class="fw-semibold text-nowrap">{% if listing.currency == 'KRW' %}₩{{ listing.price|floatformat:'0g' }}{% elif listing.currency == 'USD' %}${{ listing.price|floatformat:'2g' }}{% elif listing.currency == 'EUR' %}€{{ listing.price|floatformat:'2g' }}{% else %}{{ listing.price|floatformat:'2g' }}{% endif %} <span class="small text-secondary">{{ listing.currency }}</span></td>
+            <td><span class="badge text-bg-secondary">{{ listing.condition }}</span></td>
+            <td>{% if listing.grading_company %}{{ listing.grading_company }}{% endif %}{% if listing.grading_score %} {{ listing.grading_score }}{% endif %}{% if not listing.grading_company and not listing.grading_score %}-{% endif %}</td>
+            <td>{{ listing.market_source.name }} {% if listing.market_source.code == 'DEMO' %}<span class="badge text-bg-warning">DEMO · 테스트</span>{% elif listing.market_source.code == 'EBAY' %}<span class="badge text-bg-info">해외 참고</span>{% endif %}</td>
+            <td class="text-nowrap">{% if listing.occurred_at %}기준 {{ listing.occurred_at|date:'Y.m.d H:i' }}<br>{% endif %}<span class="small text-secondary">수집 {{ listing.collected_at|date:'Y.m.d H:i' }}</span></td>
+            <td><a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">원본 보기</a></td>
+        </tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-panel text-center text-secondary py-4">{{ empty_message }}</div>
+{% endif %}

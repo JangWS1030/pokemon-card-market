@@ -25,7 +25,7 @@ BUNDLE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 SEALED_PATTERN = re.compile(
-    r'(?<![a-z0-9])(sealed|unopened|factory sealed|booster box)(?![a-z0-9])',
+    r'(?<![a-z0-9])(sealed|unopened|factory sealed|booster box)(?![a-z0-9])|미개봉',
     re.IGNORECASE,
 )
 RAW_PATTERN = re.compile(r'(?<![a-z0-9])(raw|ungraded)(?![a-z0-9])', re.IGNORECASE)

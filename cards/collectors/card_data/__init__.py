@@ -5,10 +5,12 @@ from .justtcg import (
     JustTCGMissingCredentialsError,
     JustTCGReport,
 )
+from .pokemon_korea import PokemonKoreaCardCollector
 
 __all__ = [
     'JustTCGCardCollector',
     'JustTCGError',
     'JustTCGMissingCredentialsError',
     'JustTCGReport',
+    'PokemonKoreaCardCollector',
 ]

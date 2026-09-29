@@ -14,7 +14,8 @@ def is_listing_relevant_to_card(card, title):
     if not normalized_title or is_bundle_listing(normalized_title):
         return False
 
-    names = (card.name_en, card.name_ko)
+    is_korean_card = str(card.language).upper() in ('KO', 'KR')
+    names = (card.name_ko,) if is_korean_card else (card.name_en, card.name_ko)
     canonical_names = [
         canonical_card_name(name, card.card_number)
         for name in names
@@ -30,6 +31,10 @@ def is_listing_relevant_to_card(card, title):
     }
     if title_numbers and (not target_number or title_numbers != {target_number}):
         return False
+    if is_korean_card and not title_numbers:
+        normalized_set = normalize_text(card.set_name)
+        if not normalized_set or normalized_set not in normalized_title:
+            return False
     return True
 
 

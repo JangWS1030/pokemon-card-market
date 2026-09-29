@@ -218,11 +218,11 @@ class ListingImageAndDetailTests(TestCase):
         )
         response = self.client.get(reverse('card-detail', args=[self.card.pk]))
         for text in (
-            'eBay 해외 현재 매물 참고가',
+            '해외 참고 · eBay 현재 매물',
             '현재 매물 중앙값',
-            '현재 활성 eBay listing을 기준으로 계산',
+            'eBay 해외 CURRENT_LISTING 데이터만 기준으로 계산',
             '판매완료 가격이나 국내 실거래 시세가 아닙니다.',
-            '현재 매물 참고가 변화',
+            '유형별 가격 변화',
         ):
             with self.subTest(text=text):
                 self.assertContains(response, text)

@@ -847,8 +847,8 @@ python manage.py test
 현재 CardData dataclass, Collector 기본 인터페이스, Card import 서비스와
 `python manage.py import_cards` 진입점이 구현되어 있다. JustTCG 공식 stable v1
 `GET /v1/cards` Collector와 `--source justtcg`, `--limit`, `--query`, `--dry-run`을
-추가했다. 실제 API에서 Pokemon/Korean 필터와 응답 구조를 5건씩 두 번 확인했으나
-모든 Card의 `variants`가 비어 있어 Korean variant Card DB 저장은 아직 대기한다.
+추가했다. 실제 API에서 Pikachu `025/165` 기본정보를 Production에 저장했으며 Korean
+variant가 없는 정상 Card는 `language=UNKNOWN`으로 보존한다.
 JustTCG 가격은 이번 Card 기본정보 import에 저장하지 않는다.
 
 
@@ -902,8 +902,14 @@ Browse의 `image.imageUrl`은 판매자 매물 이미지로만 보관하고 공�
 - 현재 매물 참고가 기록
 - Chart.js 그래프
 
-현재 `PriceHistory`는 eBay 활성 listing의 상태·등급·통화별 통계 스냅샷이다. 향후 SOLD
-source가 추가되면 CURRENT_LISTING과 별도 타입/모델 정책으로 분리하고 기존 값과 섞지 않는다.
+`PriceHistory`는 listing type·상태·등급·통화별 통계 스냅샷이다. SOLD,
+CURRENT_LISTING, AUCTION_RESULT를 서로 섞지 않는다.
+
+국내 시장 확장 단계에서 `MarketListing`과 `PriceHistory`에 `listing_type`을 추가했다.
+허용 값은 `CURRENT_LISTING`, `SOLD`, `AUCTION_RESULT`이며 가격 계산 그룹에도 포함한다.
+기존 eBay 데이터는 migration 기본값으로 `CURRENT_LISTING`을 유지한다. 한국 공식 카드와
+국내 market collector는 접근·이용 조건 확인 전까지 HTTP를 비활성화하고 pure fixture
+normalizer만 제공한다. 자세한 정책은 `docs/KOREAN_MARKET_ARCHITECTURE.md`를 따른다.
 
 
 ## Phase 11 - 수동 가격 갱신

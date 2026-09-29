@@ -320,6 +320,11 @@ JustTCG에서 가져오되 대표 이미지는 빈 값일 수 있다. 기존 ima
 방어 코드로 유지하며 URL을 추측하지 않는다. 향후 이용 조건이 명확한 합법적 카드 이미지
 provider를 별도로 연결한다(TODO).
 
+한국 시장 중심 확장을 위해 Pokémon Korea, KREAM, 번개장터, NAVER CardMVK용
+normalizer 경계를 추가했다. 자동 수집·재사용 권한 또는 공개 인터페이스가 확인되지 않은
+source는 `collect()`에서 HTTP를 수행하지 않는다. synthetic fixture로 schema와 정책만
+검증하며 로그인·private API·접근 제한을 우회하지 않는다.
+
 ## 8. 카드 기본정보 자동 등록 흐름
 
 ```text
@@ -349,7 +354,7 @@ provider를 별도로 연결한다(TODO).
 → 상태 및 등급 분류
 → source + external_id로 MarketListing 생성 또는 갱신
 → 기존 상품은 삭제하거나 임의 비활성화하지 않음
-→ 활성 상품을 Card + condition + grading_score + currency별로 묶음
+→ 활성 상품을 Card + listing_type + condition + grading_score + currency별로 묶음
 → 유효하지 않은 가격 제외 및 이상치 처리
 → median, average, min, max, listing_count 계산
 → 현재 매물 참고가 PriceHistory 저장
@@ -411,7 +416,7 @@ Limit과 이용 조건을 확인하고 필요성이 있을 때만 자동 갱신�
 
 초기 이상치 방식은 설명 가능한 IQR 방식을 후보로 사용한다.
 
-1. `Card + condition`별 활성 가격 목록을 만든다.
+1. `Card + listing_type + condition + grading_score + currency`별 활성 가격 목록을 만든다.
 2. 표본이 5개 미만이면 이상치를 제거하지 않는다.
 3. 표본이 5개 이상이면 Python 표준 라이브러리의 inclusive 사분위수 방식으로
    Q1, Q3, IQR(`Q3 - Q1`)을 계산한다.
@@ -424,8 +429,8 @@ Limit과 이용 조건을 확인하고 필요성이 있을 때만 자동 갱신�
 
 ## 13. 통합 시세 계산 방식
 
-계산 단위는 `Card + condition + grading_score + currency`이며, `is_active=True`인 유효한
-MarketListing만 사용한다. 선택한 판매 출처 중 하나라도 갱신에 실패하면 오래된 값과
+계산 단위는 `Card + listing_type + condition + grading_score + currency`이며,
+`is_active=True`인 유효한 MarketListing만 사용한다. 선택한 판매 출처 중 하나라도 갱신에 실패하면 오래된 값과
 새 값이 섞인 기록을 남기지 않도록 그 카드의 새 PriceHistory 계산을 건너뛴다.
 
 1. 기본 검증과 이상치 처리를 통과한 가격 목록을 만든다.
@@ -433,7 +438,8 @@ MarketListing만 사용한다. 선택한 판매 출처 중 하나라도 갱신�
 3. 산술 `average`는 참고값으로 계산하고 통화 소수 둘째 자리로 반올림한다.
 4. `min`, `max`, `listing_count`를 같은 최종 목록에서 계산한다.
 5. 최종 데이터가 없으면 PriceHistory를 만들지 않고 "계산 자료 없음"을 보고한다.
-6. 결과가 있으면 한 실행 시점당 `Card + condition + grading_score + currency` 하나의
+6. 결과가 있으면 한 실행 시점당
+   `Card + listing_type + condition + grading_score + currency` 하나의
    PriceHistory를 저장한다.
 
 등급 회사 상태인 PSA, BGS, CGC는 회사별로 분리된다. 같은 회사 안에서 등급 점수까지
@@ -442,10 +448,10 @@ MarketListing만 사용한다. 선택한 판매 출처 중 하나라도 갱신�
 상품은 UNKNOWN과 마찬가지로 대표 시세 계산에서 제외한다.
 
 `MarketListing.currency`와 `PriceHistory.currency`로 통화를 구분한다. 다른 통화를
-합산하거나 환율 변환하지 않는다. 현재 PriceHistory는 eBay 활성 매물의 asking price
-통계 이력이지 판매완료 거래 이력이 아니다. SOLD source가 추가되면 CURRENT_LISTING과
-분리하며, 국내 판매완료 데이터는 아직 연결하지 않는다. sold source가 없는 현재는
-`price_type` 필드를 미리 추가하지 않는다.
+합산하거나 환율 변환하지 않는다. `listing_type`은 `CURRENT_LISTING`, `SOLD`,
+`AUCTION_RESULT`를 구분한다. 현재 eBay PriceHistory는 `CURRENT_LISTING` asking price
+통계다. 국내 SOLD와 종료 경매 결과는 서로 및 현재 매물과 분리하며, 국내 실제 source는
+아직 연결하지 않는다.
 
 ## 14. 웹 URL 구조
 

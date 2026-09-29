@@ -28,10 +28,12 @@ def save_market_listing(market_data, card, market_source, condition_result):
             'currency': market_data.currency,
             'url': market_data.url,
             'image_url': market_data.image_url,
+            'listing_type': market_data.listing_type,
             'condition': condition_result.condition,
             'grading_company': condition_result.grading_company,
             'grading_score': condition_result.grading_score,
             'is_active': True,
+            'occurred_at': market_data.occurred_at,
             'collected_at': market_data.collected_at,
         },
     )

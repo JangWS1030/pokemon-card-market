@@ -1,13 +1,15 @@
 # Pokemon Card Market
 
-포켓몬 카드 정보를 검색하고, 수집된 판매 데이터를 상태·등급·통화별 참고 가격으로
+한국판 포켓몬 카드를 중심으로 검색하고, 수집된 국내외 시장 데이터를
+가격 유형·상태·등급·통화별 참고 가격으로
 보여주는 Django 프로젝트다. 공식 시장가나 실시간 국내 시세를 주장하지 않으며,
 데이터 출처와 갱신 시점을 함께 표시한다.
 
 ## 문제와 목표
 
 같은 카드도 RAW·PSA·BGS·CGC 상태와 등급, 통화에 따라 가격이 다르다. 이 프로젝트는
-외부 데이터를 보수적으로 카드에 연결하고 서로 다른 그룹을 섞지 않은 참고값을 제공한다.
+외부 데이터를 보수적으로 카드에 연결하고 CURRENT_LISTING, SOLD, AUCTION_RESULT 및 서로
+다른 통화를 섞지 않은 참고값을 제공한다.
 로그인 없이 카드 검색·상세·가격 변화를 볼 수 있는 작은 포트폴리오 서비스를 목표로 한다.
 
 ## 현재 상태
@@ -32,6 +34,7 @@ DEMO는 실제 카드 또는 시세가 아니며 화면 전체에 명확히 표�
 - 현재 매물 PriceHistory와 Chart.js 참고가 변화 그래프
 - 공식 JustTCG v1 CardDataCollector
 - 공식 eBay Browse API MarketCollector
+- 한국 공식 카드·KREAM·번개장터·NAVER CardMVK용 HTTP 비활성 정규화 경계
 - 개발 전용 DEMO seed/clear 명령
 - Django Admin과 사용자 친화적 404/500 페이지
 
@@ -90,7 +93,8 @@ Collector는 외부 응답 정규화만 담당하고 카드 매칭·상태 분�
 ### 참고 가격
 
 현재의 가격 통계는 eBay의 **현재 활성 매물(asking price)** 을
-`Card + condition + grading_score + currency`별로 분리한 참고값이다. 판매완료 가격이나
+`Card + listing_type + condition + grading_score + currency`별로 분리한 참고값이다.
+CURRENT_LISTING은 판매자가 요구하는 가격이며 판매완료 가격이나
 국내 실거래 시세가 아니다. 표본 5개 이상이면
 1.5×IQR 범위 밖 값을 제외하되 남는 값이 3개 미만이면 원본으로 되돌린다. median을
 참고 시세로 사용하고 average·min·max·listing_count를 함께 기록한다.
@@ -123,9 +127,13 @@ Browse 결과는 해외 **현재 판매 매물**이며 판매완료 거래가 �
 판매자가 등록한 해당 매물 이미지로만 저장·표시하고 공식 카드 artwork 또는
 `Card.image_url`로 사용하지 않는다.
 
-`PriceHistory`는 현재 매물의 상태·등급·통화별 중앙값 등 통계를 저장한 "현재 매물
-참고가 이력"이다. 향후 SOLD 데이터가 생기면 CURRENT_LISTING과 별도 source/type으로
-분리하며 기존 데이터와 합치지 않는다. 국내 판매완료 데이터 source는 아직 연결되지 않았다.
+`PriceHistory`는 listing type·상태·등급·통화별 중앙값 등 통계를 저장한다.
+SOLD 데이터는 CURRENT_LISTING 및 AUCTION_RESULT와 분리하며 기존 데이터와 합치지 않는다.
+모델에는 `CURRENT_LISTING`, `SOLD`,
+`AUCTION_RESULT` 구분을 준비했지만 국내 실제 데이터 source는 아직 연결되지 않았다.
+
+한국 중심 데이터 source와 접근 정책, 비활성 collector 및 향후 scheduler 설계는
+[한국판 카드·국내 시장 아키텍처](docs/KOREAN_MARKET_ARCHITECTURE.md)에 정리했다.
 
 ```powershell
 .\.venv\Scripts\python.exe manage.py update_prices --card-id 1 --dry-run
