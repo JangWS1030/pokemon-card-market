@@ -6,7 +6,6 @@ from cards.services.collection_orchestrator import disabled_result
 
 
 SOURCES = (
-    ('Pokemon Korea', 'update_pokemon_korea'),
     ('KREAM', 'update_kream'),
     ('Bunjang', 'update_bunjang'),
     ('NAVER CardMVK', 'update_naver_cardmvk'),

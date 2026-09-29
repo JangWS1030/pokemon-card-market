@@ -1,6 +1,6 @@
 # 한국판 카드·국내 시장 source 조사
 
-조사일: 2026-09-29
+최종 검증일: 2026-09-30
 
 이 문서는 공개 페이지, 공식 약관, robots.txt만 확인한 결과다. 로그인, private API,
 브라우저 개발자 도구, CAPTCHA 우회, browser automation은 사용하지 않았다. robots 허용은
@@ -11,7 +11,7 @@
 
 | Source | 조사 상태 | HTTP collector | 운영 판단 |
 |---|---|---|---|
-| Pokémon Card Game Korea | PUBLIC DETAIL VERIFIED | Explicit URL only | READY FOR DRY RUN |
+| Pokémon Card Game Korea | HTTP 410 IN USER ENVIRONMENT | Disabled + manual image URL | PUBLIC PAGE NOT USABLE BY COLLECTOR |
 | BREAK | PUBLIC PRODUCT VERIFIED | Explicit URL only | READY FOR DRY RUN |
 | KREAM | LIMITED | Disabled | PUBLIC PAGE NOT USABLE |
 | 번개장터 | OFFICIAL API VERIFIED | Official API | NEEDS CREDENTIAL |
@@ -26,27 +26,29 @@ one-shot 조회를 허용한다. 401/403/429, 로그인 요구 또는 challenge�
 - 공개 카드 검색: <https://pokemoncard.co.kr/cards>
 - 공식 이용약관: <https://pokemonkorea.co.kr/terms>
 - robots.txt 확인 결과: `User-agent: *`, `Allow: /`
-- 로그인하지 않고 카드 검색 화면, 한국어 카드명·제품·카드번호와
-  `cards.image.pokemonkorea.co.kr` 이미지 참조를 확인할 수 있다.
+- 이전 조사 환경에서는 카드 HTML과 `cards.image.pokemonkorea.co.kr` 이미지 참조가
+  보였지만, 실제 Windows 사용자 환경의 일반 requests와 Mozilla User-Agent 요청은 모두
+  상세 URL에서 nginx `410 Gone`을 반환했다.
 - 사이트 footer는 콘텐츠 무단 복제·도용 금지를 명시한다.
 
 ### 판단
 
-공개 상세 페이지 `https://pokemoncard.co.kr/cards/detail/BS2023014025`에서 피카츄,
-`025/165`, 세트명, 레어도와 `cards.image.pokemonkorea.co.kr`의 실제 이미지 URL을 확인했다.
-이미지 URL에 대한 HEAD도 공개 응답 `200 image/png`였다. collector는 사용자가 명시한
-상세 URL만 조회하며 검색·pagination·URL 조합을 하지 않는다. URL reference만
-`Card.image_url`에 저장하고 파일을 복제하지 않는다. 이 기술적 접근 가능성은 이미지의
-재배포 권리를 뜻하지 않는다.
+사용자 환경에서 재현되지 않은 이전 접근 결과를 운영 근거로 삼지 않는다. 자동 상세 페이지
+collector는 HTTP 요청 전에 중단하도록 비활성화했다. cookie/session 복사, 브라우저 위장,
+Selenium/Playwright, CAPTCHA·anti-bot 우회는 구현하지 않는다. 기존 HTML parser와
+normalizer는 향후 정상적인 공식 공개 응답이 제공될 경우를 위해 pure code로 보존한다.
 
 순수 normalizer는 공식 source가 제공한 값만 받아 `language=KO`,
 `source=POKEMON_KOREA`로 변환한다. 대표 이미지는 명시적으로 제공된 HTTPS URL이면서
 `cards.image.pokemonkorea.co.kr` host인 경우만 보존한다. 카드번호로 URL을 만들거나
 filename/CDN path를 추측하지 않는다.
 
-한 Card는 상세 GET 1회, `--check-image` 사용 시 HEAD 1회다. 실행 전체는 최대 Card 3개,
-요청 6회, timeout 10초, retry 0회로 제한한다. 현재 모델에 provenance 필드가 없으므로
-명령과 이 문서로 `Card.image_url`의 출처를 기록하며 migration은 만들지 않았다.
+사용자가 별도로 확인한 공식 CDN URL은 `set_card_image`로 수동 등록할 수 있다. HTTPS와
+정확한 `cards.image.pokemonkorea.co.kr` host만 허용하고 URL을 조합하거나 추측하지 않는다.
+기본 동작은 HTTP 0회이며 `--check-image`를 명시할 때만 HEAD 1회를 수행한다. 403/410 또는
+잘못된 content-type이면 우회 없이 저장을 중단한다. URL reference만 저장하고 binary를
+다운로드하지 않는다. 상태는 `PUBLIC PAGE NOT USABLE BY COLLECTOR`,
+`MANUAL OFFICIAL IMAGE URL SUPPORTED`다.
 
 ## BREAK
 

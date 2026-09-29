@@ -69,7 +69,6 @@ class DatabaseConnectionCommandTests(TestCase):
 
 class DisabledCollectorCommandTests(TestCase):
     commands = (
-        'update_pokemon_korea',
         'update_kream',
         'update_naver_cardmvk',
     )
@@ -107,11 +106,12 @@ class DisabledCollectorCommandTests(TestCase):
         call_command('update_korean_market', dry_run=True, stdout=output)
 
         text = output.getvalue()
-        for source in ('Pokemon Korea', 'KREAM', 'Bunjang', 'NAVER CardMVK'):
+        for source in ('KREAM', 'Bunjang', 'NAVER CardMVK'):
             self.assertIn(f'{source}: SKIPPED', text)
+        self.assertNotIn('Pokemon Korea:', text)
         self.assertIn('Total created: 0', text)
         self.assertIn('Total updated: 0', text)
-        self.assertIn('Total skipped: 4', text)
+        self.assertIn('Total skipped: 3', text)
         self.assertEqual(self._counts(), (0, 0, 0, 0))
 
     @patch('cards.management.commands.update_korean_market.call_command')
@@ -130,7 +130,6 @@ class DisabledCollectorCommandTests(TestCase):
             call_command('update_korean_market', dry_run=True, stdout=output)
 
         self.assertEqual(calls, [
-            'update_pokemon_korea',
             'update_kream',
             'update_bunjang',
             'update_naver_cardmvk',

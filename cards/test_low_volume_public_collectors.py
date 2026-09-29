@@ -12,7 +12,6 @@ from django.utils import timezone
 
 from cards.collectors import (
     AuthenticationError,
-    CardData,
     CollectorTimeoutError,
     ExternalAPIError,
     InvalidResponseError,
@@ -21,6 +20,7 @@ from cards.collectors import (
     RequestSafetyPolicy,
 )
 from cards.collectors.card_data import PokemonKoreaCardCollector
+from cards.collectors.card_data.pokemon_korea import validate_official_image_url
 from cards.collectors.markets import BreakMarketCollector
 from cards.collectors.public_http import PublicHttpClient
 from cards.models import Card, Condition, ListingType, MarketListing, MarketRegion, MarketSource
@@ -168,26 +168,27 @@ class PokemonKoreaPublicCollectorTests(TestCase):
             source=source,
         )
 
-    def test_public_detail_normalizes_only_discovered_official_image(self):
-        collector, _ = self.collector()
-        data = collector.collect_url('https://pokemoncard.co.kr/cards/detail/BS2023014025')
+    def test_preserved_parser_normalizes_only_discovered_official_image(self):
+        data = PokemonKoreaCardCollector.parse_detail_html(
+            'https://pokemoncard.co.kr/cards/detail/BS2023014025',
+            POKEMON_HTML.decode(),
+        )
         self.assertEqual(data.name_ko, '피카츄')
         self.assertEqual(data.card_number, '025/165')
         self.assertEqual(data.rarity, 'C')
         self.assertEqual(data.external_id, 'BS2023014025')
         self.assertTrue(data.image_url.startswith('https://cards.image.pokemonkorea.co.kr/'))
 
-    def test_image_check_is_one_additional_head_request(self):
+    def test_automatic_collector_is_disabled_before_http(self):
         collector, session = self.collector()
-        collector.collect_url(
-            'https://pokemoncard.co.kr/cards/detail/BS2023014025', check_image=True
-        )
-        self.assertEqual([call[0] for call in session.calls], ['GET', 'HEAD'])
-        self.assertEqual(collector.request_count, 2)
+        with self.assertRaises(ExternalAPIError):
+            collector.collect_url('https://pokemoncard.co.kr/cards/detail/BS2023014025')
+        self.assertFalse(collector.HTTP_ENABLED)
+        self.assertEqual(session.calls, [])
 
     def test_guessed_or_non_detail_url_is_not_requested(self):
         collector, session = self.collector()
-        with self.assertRaises(InvalidResponseError):
+        with self.assertRaises(ExternalAPIError):
             collector.collect_url('https://pokemoncard.co.kr/cards/025-165')
         self.assertEqual(session.calls, [])
 
@@ -196,46 +197,110 @@ class PokemonKoreaPublicCollectorTests(TestCase):
         with self.assertRaises(InvalidResponseError):
             collector.collect_urls(['https://pokemoncard.co.kr/cards/detail/x'] * 4)
 
-    @patch('cards.management.commands.collect_pokemon_korea_image.PokemonKoreaCardCollector')
-    def test_command_dry_run_does_not_write(self, collector_class):
+    def test_valid_official_image_url(self):
+        url = 'https://cards.image.pokemonkorea.co.kr/data/card.png?w=512'
+        self.assertEqual(validate_official_image_url(url), url)
+
+    def test_wrong_image_hostname_is_rejected(self):
+        with self.assertRaises(InvalidResponseError):
+            validate_official_image_url('https://example.com/card.png')
+
+    def test_http_image_url_is_rejected(self):
+        with self.assertRaises(InvalidResponseError):
+            validate_official_image_url('http://cards.image.pokemonkorea.co.kr/card.png')
+
+    def test_hostname_suffix_trick_is_rejected(self):
+        with self.assertRaises(InvalidResponseError):
+            validate_official_image_url(
+                'https://cards.image.pokemonkorea.co.kr.evil.com/card.png'
+            )
+
+    def test_credentials_in_image_url_are_rejected(self):
+        with self.assertRaises(InvalidResponseError):
+            validate_official_image_url(
+                'https://user:password@cards.image.pokemonkorea.co.kr/card.png'
+            )
+
+    def test_private_ip_and_oversized_image_urls_are_rejected(self):
+        for url in (
+            'https://127.0.0.1/card.png',
+            'https://cards.image.pokemonkorea.co.kr/' + ('a' * 2050),
+        ):
+            with self.subTest(url=url), self.assertRaises(InvalidResponseError):
+                validate_official_image_url(url)
+
+    def test_manual_command_dry_run_does_not_write(self):
         card = self.make_card()
-        collector = collector_class.return_value
-        collector.collect_url.return_value = CardData(
-            name_ko='피카츄', name_en=None, set_name='포켓몬 카드 151',
-            card_number='025/165', language='KO', source='POKEMON_KOREA',
-            external_id='BS2023014025', rarity='C',
-            image_url='https://cards.image.pokemonkorea.co.kr/card.png',
-        )
-        collector.matches_card.return_value = True
-        collector.request_count = 2
         output = StringIO()
         call_command(
-            'collect_pokemon_korea_image', card_id=card.pk,
-            url='https://pokemoncard.co.kr/cards/detail/BS2023014025',
-            check_image=True, dry_run=True, stdout=output,
+            'set_card_image', card_id=card.pk,
+            url='https://cards.image.pokemonkorea.co.kr/card.png',
+            dry_run=True, stdout=output,
         )
         card.refresh_from_db()
         self.assertFalse(card.image_url)
         self.assertIn('Mode: dry-run', output.getvalue())
+        self.assertIn('DB writes: 0', output.getvalue())
 
-    @patch('cards.management.commands.collect_pokemon_korea_image.PokemonKoreaCardCollector')
-    def test_command_write_updates_only_image_and_rejects_demo(self, collector_class):
+    @patch('cards.management.commands.set_card_image.PublicHttpClient')
+    def test_optional_image_check_uses_one_head_request(self, client_class):
         card = self.make_card()
-        collector = collector_class.return_value
-        collector.collect_url.return_value = CardData(
-            name_ko='피카츄', name_en=None, set_name='포켓몬 카드 151',
-            card_number='025/165', language='KO', source='POKEMON_KOREA',
-            external_id='official', rarity='C', image_url='https://cards.image.pokemonkorea.co.kr/card.png',
+        client_class.return_value.request_count = 1
+        output = StringIO()
+        url = 'https://cards.image.pokemonkorea.co.kr/card.png'
+        call_command(
+            'set_card_image', card_id=card.pk, url=url,
+            check_image=True, dry_run=True, stdout=output,
         )
-        collector.matches_card.return_value = True
-        collector.request_count = 1
-        call_command('collect_pokemon_korea_image', card_id=card.pk, url='https://pokemoncard.co.kr/cards/detail/official', write=True)
+        client_class.return_value.head_image.assert_called_once_with(url)
+        self.assertIn('Image check requests: 1', output.getvalue())
+        card.refresh_from_db()
+        self.assertFalse(card.image_url)
+
+    def test_manual_command_write_updates_only_image_and_rejects_demo(self):
+        card = self.make_card()
+        original = {
+            field.attname: getattr(card, field.attname)
+            for field in Card._meta.concrete_fields
+            if field.name != 'image_url'
+        }
+        call_command(
+            'set_card_image', card_id=card.pk,
+            url='https://cards.image.pokemonkorea.co.kr/card.png', write=True,
+        )
         card.refresh_from_db()
         self.assertEqual(card.image_url, 'https://cards.image.pokemonkorea.co.kr/card.png')
-        self.assertEqual(card.name_en, 'Pikachu')
+        unchanged = {
+            field.attname: getattr(card, field.attname)
+            for field in Card._meta.concrete_fields
+            if field.name != 'image_url'
+        }
+        self.assertEqual(unchanged, original)
         demo = self.make_card(source='DEMO')
         with self.assertRaises(CommandError):
-            call_command('collect_pokemon_korea_image', card_id=demo.pk, url='https://pokemoncard.co.kr/cards/detail/official', write=True)
+            call_command(
+                'set_card_image', card_id=demo.pk,
+                url='https://cards.image.pokemonkorea.co.kr/card.png', write=True,
+            )
+
+    @patch('cards.management.commands.set_card_image.PublicHttpClient')
+    def test_failed_image_check_prevents_write(self, client_class):
+        card = self.make_card()
+        client_class.return_value.head_image.side_effect = ExternalAPIError('HTTP 410')
+        with self.assertRaises(CommandError):
+            call_command(
+                'set_card_image', card_id=card.pk,
+                url='https://cards.image.pokemonkorea.co.kr/card.png',
+                check_image=True, write=True,
+            )
+        card.refresh_from_db()
+        self.assertFalse(card.image_url)
+
+    def test_legacy_collection_command_reports_disabled_without_http(self):
+        output = StringIO()
+        call_command('collect_pokemon_korea_image', dry_run=True, stdout=output)
+        self.assertIn('HTTP 410', output.getvalue())
+        self.assertIn('Automatic collection is disabled', output.getvalue())
 
 
 class BreakPublicCollectorTests(TestCase):

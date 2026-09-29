@@ -24,6 +24,7 @@ Render Cron Job, Background Worker, Celery, Redis, APScheduler는 사용하지 �
 `update_korean_market --dry-run`은 기존 source command의 안전한 orchestration 확인만 하며
 외부 HTTP나 DB write를 수행하지 않는다. 새 공개 collector는 명시적 URL이 필요한 별도
 one-shot command라 workflow에 연결하지 않았다.
+Pokémon Korea 이미지는 수동 metadata 관리 대상이며 scheduler source에 포함하지 않는다.
 
 실행 순서는 checkout, Python 3.13 설정, dependency 설치, Django system check,
 PostgreSQL 연결 및 migration 상태 확인, collector orchestration 검증 순서다.
@@ -57,7 +58,7 @@ option으로 전달한다.
 5. repository의 **Actions** 탭에서 **Collect market data**를 선택한다.
 6. **Run workflow**를 누르고 `main` branch에서 실행한다.
 7. 로그에서 `Database connection: OK`, `Backend: PostgreSQL`, `Migrations: OK`와
-   국내 source 4개의 `SKIPPED` summary를 확인한다.
+   국내 market source 3개의 `SKIPPED` summary를 확인한다.
 
 연결 오류가 나더라도 로그에 URL, host, username, password는 출력되지 않는다.
 `Migrations: unapplied` 오류가 나면 scheduler에서 migrate하지 말고 Render deploy의

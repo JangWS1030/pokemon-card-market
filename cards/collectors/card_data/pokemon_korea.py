@@ -1,14 +1,22 @@
 import re
+import ipaddress
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 
-from cards.collectors import CardData, InvalidResponseError, MissingFieldError, RequestSafetyPolicy
+from cards.collectors import (
+    CardData,
+    ExternalAPIError,
+    InvalidResponseError,
+    MissingFieldError,
+    RequestSafetyPolicy,
+)
 from cards.collectors.public_http import PublicHttpClient
 from cards.services.normalization import canonical_card_name, normalize_card_number, normalize_text
 
 
 PUBLIC_PAGE_HOSTS = {'pokemoncard.co.kr', 'www.pokemoncard.co.kr'}
 OFFICIAL_IMAGE_HOSTS = {'cards.image.pokemonkorea.co.kr'}
+MAX_IMAGE_URL_LENGTH = 2048
 DETAIL_PATH_PATTERN = re.compile(r'^/cards/detail/(?P<external_id>[A-Za-z0-9_-]+)/*$')
 NUMBER_PATTERN = re.compile(r'(?P<number>\d{1,4}\s*/\s*\d{1,4})(?:\s+(?P<rarity>\S+))?')
 
@@ -49,7 +57,7 @@ class PokemonKoreaCardCollector:
     """Explicit public-detail lookup for official Korean card images."""
 
     SOURCE = 'POKEMON_KOREA'
-    HTTP_ENABLED = True
+    HTTP_ENABLED = False
     REQUEST_POLICY = RequestSafetyPolicy(max_items=3, request_budget=6, retry_limit=0)
 
     def __init__(self, client=None):
@@ -63,14 +71,21 @@ class PokemonKoreaCardCollector:
         return self.client.request_count
 
     def collect_url(self, url, check_image=False):
+        raise ExternalAPIError(
+            'Pokemon Korea automatic public-page collection is disabled because '
+            'the verified user environment returned HTTP 410.'
+        )
+
+    @classmethod
+    def parse_detail_html(cls, url, html):
+        """Preserved pure parser for a future officially usable public response."""
         parsed_url = urlparse(url)
         path_match = DETAIL_PATH_PATTERN.fullmatch(parsed_url.path)
         if parsed_url.hostname not in PUBLIC_PAGE_HOSTS or not path_match:
             raise InvalidResponseError('Pokémon Korea 카드 상세 공개 URL만 허용합니다.')
 
-        response = self.client.get_html(url)
         parser = _PokemonKoreaDetailParser()
-        parser.feed(response.text)
+        parser.feed(html)
         number_text = _clean_text(' '.join(parser.number_parts))
         number_match = NUMBER_PATTERN.search(number_text)
         item = {
@@ -81,11 +96,9 @@ class PokemonKoreaCardCollector:
             'rarity': number_match.group('rarity') if number_match else '',
             'image_url': parser.image_url,
         }
-        data = self.normalize(item)
+        data = cls.normalize(item)
         if not data.image_url:
             raise InvalidResponseError('공식 상세 페이지에서 허용된 이미지 URL을 찾지 못했습니다.')
-        if check_image:
-            self.client.head_image(data.image_url)
         return data
 
     def collect_urls(self, urls, check_image=False):
@@ -147,13 +160,35 @@ def _identity_tokens(value):
 
 
 def _public_url_or_empty(value):
+    try:
+        return validate_official_image_url(value)
+    except InvalidResponseError:
+        return ''
+
+
+def validate_official_image_url(value):
     value = _clean_text(value)
+    if not value or len(value) > MAX_IMAGE_URL_LENGTH or any(char.isspace() for char in value):
+        raise InvalidResponseError('공식 이미지 URL 형식 또는 길이가 올바르지 않습니다.')
     parsed = urlparse(value)
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise InvalidResponseError('공식 이미지 URL port가 올바르지 않습니다.') from error
+    hostname = parsed.hostname.casefold() if parsed.hostname else ''
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        address = None
     if (
         parsed.scheme == 'https'
-        and parsed.hostname in OFFICIAL_IMAGE_HOSTS
+        and hostname in OFFICIAL_IMAGE_HOSTS
         and not parsed.username
         and not parsed.password
+        and port in (None, 443)
+        and address is None
     ):
         return value
-    return ''
+    raise InvalidResponseError(
+        'HTTPS cards.image.pokemonkorea.co.kr 이미지 URL만 허용합니다.'
+    )

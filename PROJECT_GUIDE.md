@@ -1072,8 +1072,10 @@ JustTCG 공식 API의 실제 응답으로 Pikachu `025/165` 기본정보를 저�
 
 2026-09-29 공개 페이지·robots·공식 약관을 다시 조사했다. 개인용·소량 정책에서
 로그인·CAPTCHA·private API 없이 정상 공개되는 URL만 timeout 10초, retry 0회, 작은 request
-budget으로 one-shot 조회한다. Pokémon Korea는 명시적 카드 상세 URL에서 공식 이미지 URL만
-Card에 연결할 수 있다. BREAK는 사용자가 제공한 공개 상품 URL 한 건만 조회하며 현재 입찰가는
+budget으로 one-shot 조회한다. Pokémon Korea 상세 페이지는 실제 Windows requests 환경에서
+HTTP 410이 재현되어 자동 collector와 scheduler 대상에서 제외한다. cookie/session 복사나
+browser automation 우회 없이, 사용자가 확인한 공식 CDN URL만 `set_card_image`로
+Card.image_url에 수동 연결할 수 있다. BREAK는 사용자가 제공한 공개 상품 URL 한 건만 조회하며 현재 입찰가는
 `CURRENT_LISTING`, 명확한 최종가와 종료 시각이 있는 결과만 `AUCTION_RESULT`로 취급한다.
 번개장터는 공식 Open API의 access key/secret key 기반 JWT와 상품 검색만 사용하며 credential
 발급 전에는 HTTP를 호출하지 않는다. KREAM·NAVER·Pokepolio collector와 자동 schedule은 활성화하지 않는다. 자세한 근거와

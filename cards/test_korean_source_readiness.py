@@ -113,9 +113,9 @@ class PokemonKoreaReadinessTests(TestCase):
         self.assertEqual(result.skipped, 1)
         self.assertEqual(Card.objects.count(), 2)
 
-    def test_enabled_collector_has_hard_request_policy(self):
+    def test_disabled_collector_keeps_bounded_future_policy(self):
         collector = PokemonKoreaCardCollector()
-        self.assertTrue(collector.HTTP_ENABLED)
+        self.assertFalse(collector.HTTP_ENABLED)
         self.assertEqual(collector.REQUEST_POLICY.request_budget, 6)
         self.assertLessEqual(collector.REQUEST_POLICY.max_items, 3)
         self.assertEqual(collector.REQUEST_POLICY.retry_limit, 0)

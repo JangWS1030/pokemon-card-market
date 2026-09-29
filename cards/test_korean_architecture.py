@@ -64,11 +64,13 @@ class PokemonKoreaCardArchitectureTests(TestCase):
         )
         self.assertEqual(data.image_url, '')
 
-    def test_http_collection_requires_explicit_public_detail_url(self):
+    def test_http_collection_is_disabled_after_verified_410(self):
         collector = PokemonKoreaCardCollector()
-        self.assertTrue(collector.HTTP_ENABLED)
+        self.assertFalse(collector.HTTP_ENABLED)
         self.assertFalse(hasattr(collector, 'search'))
         self.assertEqual(collector.REQUEST_POLICY.retry_limit, 0)
+        with self.assertRaises(ExternalAPIError):
+            collector.collect_url('https://pokemoncard.co.kr/cards/detail/BS2023014025')
 
     def test_korean_card_source_attribution_and_image_render(self):
         import_cards([PokemonKoreaCardCollector.normalize(self.fixture())])
