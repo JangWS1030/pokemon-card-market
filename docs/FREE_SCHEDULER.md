@@ -28,6 +28,10 @@ Render Cron Job, Background Worker, Celery, Redis, APScheduler는 사용하지 �
 PostgreSQL 연결 및 migration 상태 확인, collector orchestration 검증 순서다.
 workflow는 migration을 적용하지 않으며 destructive command도 실행하지 않는다.
 
+GitHub Actions 수동 실행에서 Django check, Production PostgreSQL 연결, migration 상태,
+국내 collector orchestration이 모두 성공한 것을 확인했다. 이 성공은 실제 국내 HTTP 수집
+승인을 의미하지 않는다. source 조사 결과는 `docs/KOREAN_SOURCE_RESEARCH.md`를 따른다.
+
 ## GitHub Repository Secret
 
 현재 필요한 secret은 하나뿐이다.

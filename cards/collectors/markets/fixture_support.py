@@ -1,8 +1,14 @@
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
 from urllib.parse import urlparse
 
-from cards.collectors import ExternalAPIError, InvalidResponseError, MarketData, MissingFieldError
+from cards.collectors import (
+    ExternalAPIError,
+    InvalidResponseError,
+    MarketData,
+    MissingFieldError,
+    RequestSafetyPolicy,
+)
+from cards.services.normalization import parse_krw_price
 
 
 class DisabledPublicMarketCollector:
@@ -10,6 +16,7 @@ class DisabledPublicMarketCollector:
 
     SOURCE = ''
     HTTP_ENABLED = False
+    REQUEST_POLICY = RequestSafetyPolicy(max_items=3)
 
     def collect(self, *args, **kwargs):
         raise ExternalAPIError(
@@ -28,12 +35,12 @@ class DisabledPublicMarketCollector:
                 f"{cls.SOURCE} fixture 필수 필드가 없습니다: {', '.join(missing)}"
             )
 
-        try:
-            price = Decimal(str(item['price']))
-        except (InvalidOperation, TypeError, ValueError) as error:
-            raise InvalidResponseError(f'{cls.SOURCE} 가격 형식이 올바르지 않습니다.') from error
-        if price <= 0:
-            raise InvalidResponseError(f'{cls.SOURCE} 가격은 0보다 커야 합니다.')
+        external_id = str(item['external_id']).strip()
+        title = str(item['title']).strip()
+        if not external_id or not title:
+            raise MissingFieldError(f'{cls.SOURCE} external_id와 title은 비어 있을 수 없습니다.')
+
+        price = parse_krw_price(item['price'])
 
         url = _http_url(item['url'], required=True)
         image_url = _http_url(item.get('image_url'), required=False)
@@ -49,8 +56,8 @@ class DisabledPublicMarketCollector:
             raise InvalidResponseError(f'{cls.SOURCE} occurred_at은 datetime이어야 합니다.')
 
         return MarketData(
-            external_id=str(item['external_id']).strip(),
-            title=str(item['title']).strip(),
+            external_id=external_id,
+            title=title,
             price=price,
             currency='KRW',
             url=url,
@@ -65,6 +72,13 @@ class DisabledPublicMarketCollector:
 def _http_url(value, required):
     if value in (None, '') and not required:
         return ''
-    if not isinstance(value, str) or urlparse(value).scheme not in ('http', 'https'):
+    parsed = urlparse(value) if isinstance(value, str) else None
+    if (
+        not parsed
+        or parsed.scheme not in ('http', 'https')
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
         raise InvalidResponseError('공개 HTTP/HTTPS URL 형식이 올바르지 않습니다.')
     return value

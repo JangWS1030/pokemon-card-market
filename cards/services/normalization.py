@@ -1,5 +1,14 @@
 import re
 import unicodedata
+from decimal import Decimal, InvalidOperation
+
+from cards.collectors import InvalidResponseError
+
+
+KRW_PRICE_PATTERN = re.compile(
+    r'^(?:₩\s*|krw\s*)?(\d{1,3}(?:,\d{3})+|\d+)(?:\s*원)?$',
+    re.IGNORECASE,
+)
 
 
 def normalize_text(value):
@@ -46,3 +55,29 @@ def canonical_card_name(name, card_number):
         re.IGNORECASE,
     )
     return suffix.sub('', normalized_name).rstrip(' -#')
+
+
+def parse_krw_price(value):
+    """명시적인 원화 정수 가격만 허용하고 축약 표현은 추측하지 않는다."""
+
+    if isinstance(value, bool) or value is None:
+        raise InvalidResponseError('KRW 가격 형식이 올바르지 않습니다.')
+
+    if isinstance(value, (int, Decimal)):
+        normalized = str(value)
+    elif isinstance(value, str):
+        normalized = unicodedata.normalize('NFKC', value).strip()
+    else:
+        raise InvalidResponseError('KRW 가격 형식이 올바르지 않습니다.')
+
+    match = KRW_PRICE_PATTERN.fullmatch(normalized)
+    if not match:
+        raise InvalidResponseError('KRW 가격 형식이 올바르지 않습니다.')
+
+    try:
+        price = Decimal(match.group(1).replace(',', ''))
+    except InvalidOperation as error:
+        raise InvalidResponseError('KRW 가격 형식이 올바르지 않습니다.') from error
+    if price <= 0 or price != price.to_integral_value():
+        raise InvalidResponseError('KRW 가격은 0보다 큰 정수여야 합니다.')
+    return price

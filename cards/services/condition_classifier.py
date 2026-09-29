@@ -21,7 +21,7 @@ GRADE_PATTERN = re.compile(
 BUNDLE_PATTERN = re.compile(
     r'(?<![a-z0-9])(lot|bundle|bulk|collection|playset|x\s*\d+|\d+\s*cards?'
     r'|random\s+card|complete\s+set|you\s+pick)(?![a-z0-9])'
-    r'|묶음|일괄',
+    r'|묶음|일괄|랜덤|대량|완전\s*세트|풀\s*세트|(?:[2-9]|[1-9]\d+)\s*장',
     re.IGNORECASE,
 )
 SEALED_PATTERN = re.compile(

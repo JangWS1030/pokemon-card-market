@@ -1,6 +1,14 @@
 from urllib.parse import urlparse
 
-from cards.collectors import CardData, ExternalAPIError, MissingFieldError
+from cards.collectors import (
+    CardData,
+    ExternalAPIError,
+    MissingFieldError,
+    RequestSafetyPolicy,
+)
+
+
+OFFICIAL_IMAGE_HOSTS = {'cards.image.pokemonkorea.co.kr'}
 
 
 class PokemonKoreaCardCollector:
@@ -8,6 +16,7 @@ class PokemonKoreaCardCollector:
 
     SOURCE = 'POKEMON_KOREA'
     HTTP_ENABLED = False
+    REQUEST_POLICY = RequestSafetyPolicy(max_items=3)
 
     def collect(self, *args, **kwargs):
         raise ExternalAPIError(
@@ -46,4 +55,12 @@ def _clean_text(value):
 
 def _public_url_or_empty(value):
     value = _clean_text(value)
-    return value if value and urlparse(value).scheme in ('http', 'https') else ''
+    parsed = urlparse(value)
+    if (
+        parsed.scheme == 'https'
+        and parsed.hostname in OFFICIAL_IMAGE_HOSTS
+        and not parsed.username
+        and not parsed.password
+    ):
+        return value
+    return ''

@@ -1067,3 +1067,11 @@ JustTCG 공식 API의 실제 응답으로 Pikachu `025/165` 기본정보를 저�
 없는 정상 Card는 `language=UNKNOWN`으로 보존한다. eBay Production OAuth/Browse 연결과
 현재 매물 3건 저장을 확인했다. 이 가격은 판매완료 거래가 아닌 현재 asking price다. 국내
 판매완료 가격 출처는 계속 검토 중이며, 확인되지 않은 API나 크롤링은 구현하지 않는다.
+
+## 국내 source 실연결 조사 상태
+
+2026-09-29 공개 페이지·robots·공식 약관을 다시 조사했다. Pokémon Card Game Korea,
+KREAM, 번개장터는 제한적으로 공개 정보를 확인했지만 자동 저장·이미지 사용 또는 안정적인
+공개 interface 허용 범위를 확정하지 못해 HTTP collector를 비활성 상태로 유지한다.
+NAVER CardMVK는 robots와 NAVER 약관 근거로 자동화하지 않는다. 자세한 근거와 활성화
+순서는 `docs/KOREAN_SOURCE_RESEARCH.md`, `docs/KOREAN_COLLECTION_RUNBOOK.md`를 따른다.
