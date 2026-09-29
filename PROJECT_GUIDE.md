@@ -1070,8 +1070,11 @@ JustTCG 공식 API의 실제 응답으로 Pikachu `025/165` 기본정보를 저�
 
 ## 국내 source 실연결 조사 상태
 
-2026-09-29 공개 페이지·robots·공식 약관을 다시 조사했다. Pokémon Card Game Korea,
-KREAM, 번개장터는 제한적으로 공개 정보를 확인했지만 자동 저장·이미지 사용 또는 안정적인
-공개 interface 허용 범위를 확정하지 못해 HTTP collector를 비활성 상태로 유지한다.
-NAVER CardMVK는 robots와 NAVER 약관 근거로 자동화하지 않는다. 자세한 근거와 활성화
-순서는 `docs/KOREAN_SOURCE_RESEARCH.md`, `docs/KOREAN_COLLECTION_RUNBOOK.md`를 따른다.
+2026-09-29 공개 페이지·robots·공식 약관을 다시 조사했다. 개인용·소량 정책에서
+로그인·CAPTCHA·private API 없이 정상 공개되는 URL만 timeout 10초, retry 0회, 작은 request
+budget으로 one-shot 조회한다. Pokémon Korea는 명시적 카드 상세 URL에서 공식 이미지 URL만
+Card에 연결할 수 있다. BREAK는 사용자가 제공한 공개 상품 URL 한 건만 조회하며 현재 입찰가는
+`CURRENT_LISTING`, 명확한 최종가와 종료 시각이 있는 결과만 `AUCTION_RESULT`로 취급한다.
+번개장터는 공식 Open API의 access key/secret key 기반 JWT와 상품 검색만 사용하며 credential
+발급 전에는 HTTP를 호출하지 않는다. KREAM·NAVER·Pokepolio collector와 자동 schedule은 활성화하지 않는다. 자세한 근거와
+활성화 순서는 `docs/KOREAN_SOURCE_RESEARCH.md`, `docs/KOREAN_COLLECTION_RUNBOOK.md`를 따른다.

@@ -21,8 +21,9 @@ Render Cron Job, Background Worker, Celery, Redis, APScheduler는 사용하지 �
 ## 현재 workflow
 
 `.github/workflows/collect-market.yml`은 현재 `workflow_dispatch`만 지원한다.
-국내 HTTP collector가 모두 비활성 상태이므로 `update_korean_market --dry-run`은
-각 source를 `SKIPPED`로 기록하고 외부 HTTP나 DB write를 수행하지 않는다.
+`update_korean_market --dry-run`은 기존 source command의 안전한 orchestration 확인만 하며
+외부 HTTP나 DB write를 수행하지 않는다. 새 공개 collector는 명시적 URL이 필요한 별도
+one-shot command라 workflow에 연결하지 않았다.
 
 실행 순서는 checkout, Python 3.13 설정, dependency 설치, Django system check,
 PostgreSQL 연결 및 migration 상태 확인, collector orchestration 검증 순서다.
@@ -64,7 +65,7 @@ option으로 전달한다.
 
 ## 향후 schedule 활성화 예시
 
-첫 수동 검증과 실제 국내 collector의 정책 검토가 끝난 뒤에만 아래 trigger를
+여러 차례의 one-shot 검증과 source 정책 재검토가 끝난 뒤에만 아래 trigger를
 workflow의 `on` 아래에 추가한다. 지금 workflow에는 추가하지 않는다.
 
 ```yaml

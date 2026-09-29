@@ -11,12 +11,15 @@
 
 | Source | 조사 상태 | HTTP collector | 운영 판단 |
 |---|---|---|---|
-| Pokémon Card Game Korea | LIMITED | Disabled | NEEDS MANUAL CHECK |
-| KREAM | LIMITED | Disabled | NEEDS MANUAL CHECK |
-| 번개장터 | LIMITED | Disabled | NEEDS MANUAL CHECK |
+| Pokémon Card Game Korea | PUBLIC DETAIL VERIFIED | Explicit URL only | READY FOR DRY RUN |
+| BREAK | PUBLIC PRODUCT VERIFIED | Explicit URL only | READY FOR DRY RUN |
+| KREAM | LIMITED | Disabled | PUBLIC PAGE NOT USABLE |
+| 번개장터 | OFFICIAL API VERIFIED | Official API | NEEDS CREDENTIAL |
 | NAVER CardMVK | DISABLED | Disabled | DO NOT AUTOMATE |
 
-현재 `READY` source는 없다. 따라서 Production write용 one-shot command도 만들지 않는다.
+이번 개인용·소량 Phase에서는 로그인·CAPTCHA·private API 없이 보이는 공개 URL에 한해
+one-shot 조회를 허용한다. 401/403/429, 로그인 요구 또는 challenge가 나오면 즉시 중단하며
+우회하지 않는다. 자동 scheduler는 계속 꺼져 있다.
 
 ## Pokémon Card Game Korea
 
@@ -29,23 +32,46 @@
 
 ### 판단
 
-공개 metadata의 **발견 가능성**과 공식 이미지 URL의 **발견 가능성**은 확인했다. 그러나
-metadata의 자동 저장, 외부 `<img>` hotlink, 이미지 다운로드·복제 권한은 확인되지 않았다.
-robots 허용만으로 이 권한을 추정하지 않는다. `PokemonKoreaCardCollector`의 HTTP는
-비활성 상태를 유지한다.
+공개 상세 페이지 `https://pokemoncard.co.kr/cards/detail/BS2023014025`에서 피카츄,
+`025/165`, 세트명, 레어도와 `cards.image.pokemonkorea.co.kr`의 실제 이미지 URL을 확인했다.
+이미지 URL에 대한 HEAD도 공개 응답 `200 image/png`였다. collector는 사용자가 명시한
+상세 URL만 조회하며 검색·pagination·URL 조합을 하지 않는다. URL reference만
+`Card.image_url`에 저장하고 파일을 복제하지 않는다. 이 기술적 접근 가능성은 이미지의
+재배포 권리를 뜻하지 않는다.
 
 순수 normalizer는 공식 source가 제공한 값만 받아 `language=KO`,
 `source=POKEMON_KOREA`로 변환한다. 대표 이미지는 명시적으로 제공된 HTTPS URL이면서
 `cards.image.pokemonkorea.co.kr` host인 경우만 보존한다. 카드번호로 URL을 만들거나
 filename/CDN path를 추측하지 않는다.
 
-필요한 수동 확인은 포켓몬코리아에 카드 metadata 저장, 주기적 자동 조회, 이미지 hotlink
-각각의 허용 범위와 적정 요청 빈도를 문의하는 것이다.
+한 Card는 상세 GET 1회, `--check-image` 사용 시 HEAD 1회다. 실행 전체는 최대 Card 3개,
+요청 6회, timeout 10초, retry 0회로 제한한다. 현재 모델에 provenance 필드가 없으므로
+명령과 이 문서로 `Card.image_url`의 출처를 기록하며 migration은 만들지 않았다.
+
+## BREAK
+
+- 공개 웹: <https://app.break.market/>
+- robots.txt는 일반 공개 페이지를 허용하고 `/api/`, 로그인·프로필·채팅 등 개인 경로는
+  차단한다. 공개 product sitemap도 제공한다.
+- 공개 상품 HTML의 `og:title`, `og:description`, `og:image`에서 product ID, 제목,
+  현재 입찰가/즉시구매가, 공개 URL, seller 상품 이미지를 확인할 수 있다.
+- 실제 공개 페이지의 `현재 입찰가`는 종료·낙찰·결제 완료 근거가 아니므로
+  `CURRENT_LISTING`으로만 저장한다. 제목에는 `진행 중 경매`를 명시한다.
+- 종료 시각과 최종가가 동시에 명확한 입력만 `AUCTION_RESULT`가 될 수 있으며 SOLD로
+  바꾸지 않는다. 현재 조사한 공개 페이지에서는 그런 종료 결과를 확인하지 못했다.
+- seller 별명 등 개인정보는 parser 단계에서 제거한다.
+
+검색 자동화나 sitemap 순회는 구현하지 않았다. 사용자가 직접 확인한
+`https://app.break.market/products/<숫자>/...` URL 하나만 `--url`로 받으며 GET 1회,
+pagination/retry 0회다. 가격문의 상품, 다른 카드번호, bundle/box/sealed, 안전하게
+매칭되지 않는 상품은 저장하지 않는다. 따라서 명시적 URL one-shot 범위에서
+`READY FOR DRY RUN`이다.
 
 ## KREAM
 
 - 공개 상품 예시: <https://kream.co.kr/products/660881>
 - 공식 이용약관: <https://kream.co.kr/agreement>
+- `dev.cre.ma`의 CREMA는 별도 서비스이므로 사용하지 않는다.
 - 공개 페이지에서 product ID, 상품명, 이미지, 체결 거래·판매 입찰·구매 입찰이라는
   구분과 일부 가격·거래일이 보인다.
 - 전체 시세는 로그인 후 확인하도록 제한된다는 안내가 표시된다.
@@ -68,23 +94,31 @@ KREAM의 자동 조회 허용 여부와 공개적으로 지원되는 데이터 �
 
 ## 번개장터
 
-- 공개 상품 페이지: <https://m.bunjang.co.kr/products/428711864>
-- 공개 검색 결과에서 stable product ID, 제목, KRW 표시 가격, 상품 URL, seller image,
-  상대 게시 시점을 확인했다.
-- robots.txt는 `/login`, `/apps`, `/talk2`를 제외한 일반 경로를 허용한다.
-- 그러나 투명한 일반 User-Agent의 직접 HTTP 1회 응답은 실제 상품 metadata가 없는
-  client shell뿐이었다. 안정적인 server-rendered parser를 만들 수 없었다.
-- private API 조사나 browser automation은 하지 않았다.
+- 공식 Open API 문서: <https://api.bgzt.guide/doc-662202>
+- 파트너 계약과 계정 설정 뒤 발급되는 공식 `access key`, Base64 encoded `secret key`가
+  필요하다. 환경변수명은 `BUNJANG_ACCESS_KEY`, `BUNJANG_SECRET_KEY`다.
+- secret을 Base64 decode한 bytes로 HS256 JWT를 서명한다. GET JWT claim은 `accessKey`,
+  `iat`이며 문서상 유효 시간은 발급 후 30초다. POST/PUT/DELETE에만 UUID v4 `nonce`를
+  추가한다. `Authorization: Bearer <JWT>`로 전송한다.
+- Production base URL은 `https://openapi.bunjang.co.kr`, 상품 검색은
+  `GET /api/v1/products`이고 `q`, `size`를 사용한다.
+- 응답에서 확인한 필드는 `pid`, `name`, `quantity`, `price`, `shippingFee`, `condition`,
+  `saleStatus`, `imageUrlTemplate`, `imageCount`, `categoryId`, `brandId`, `options`, `uid`,
+  `updatedAt`, `createdAt`, `nextCursor`, `hasNext`다.
+- 공식 schema의 활성 판매 상태는 `SELLING`이다. `SELLING`만 `CURRENT_LISTING`으로
+  정규화하며 다른 상태를 SOLD로 변환하지 않는다.
+- API의 `condition`은 판매자가 표시한 일반 상품 상태이며 PSA/BGS/CGC 카드 등급과 의미가
+  다르므로 grading 필드로 변환하지 않는다. 카드 상태는 기존 제목 기반 보수적 분류를 거친다.
+- 공식 문서에는 일반적인 rate-limit 숫자가 표시되지 않는다. 따라서 429에서 즉시
+  중단하고 retry하지 않으며, 명령 자체는 검색 GET 1회, 결과 최대 5건으로 제한한다.
 
 ### 판단
 
-공개 상품의 `CURRENT_LISTING` 가능성은 확인했지만 안전하고 안정적인 자동 수집 interface와
-이용 조건을 확정하지 못해 `LIMITED`다. HTTP collector는 비활성이다. 판매완료 표시는 실제
-결제·체결 가격을 보장하지 않으므로 `SOLD`를 만들지 않는다. 배송비도 상품 가격에 합산하지
-않는다.
-
-자동 조회 허용 범위와 공식/문서화된 상품 데이터 interface가 있는지 번개장터에 수동 문의해야
-한다.
+공식 API client, JWT signer, 검색 normalizer와 `update_bunjang` 명령은 mock으로 구현했다.
+credential 발급 전에는 HTTP 0회로 SKIPPED되므로 상태는 `NEEDS CREDENTIAL`이다. 전체 catalog,
+cursor pagination, 주문 API는 사용하지 않는다. API 응답의 `uid`는 seller 식별자이므로
+저장하지 않는다. 상품 이미지는 공식 `imageUrlTemplate`에서 첫 번째 `{cnt}`만 치환하고
+`media.bunjang.co.kr`을 allowlist한다. 배송비는 카드 가격에 합산하지 않는다.
 
 ## NAVER CardMVK
 
@@ -114,3 +148,5 @@ KREAM의 자동 조회 허용 여부와 공개적으로 지원되는 데이터 �
 - 매칭: 한국어 이름과 정확한 카드번호를 우선하고, 다른 번호·이름·묶음·랜덤·대량은 skip
 - source마다 실제 collector가 승인될 때 timeout 10초, 최대 3 items, retry 0회,
   request budget 1회를 기본 상한으로 다시 검토
+- Pokepolio는 여러 플랫폼 데이터를 가공한 2차 시세 서비스이므로 collector를 만들지 않는다.
+  사람이 우리 계산 결과와 공개 시세를 sanity check하는 용도로만 사용한다.

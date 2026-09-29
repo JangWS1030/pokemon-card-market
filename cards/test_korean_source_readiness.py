@@ -113,10 +113,10 @@ class PokemonKoreaReadinessTests(TestCase):
         self.assertEqual(result.skipped, 1)
         self.assertEqual(Card.objects.count(), 2)
 
-    def test_disabled_collector_has_hard_request_policy(self):
+    def test_enabled_collector_has_hard_request_policy(self):
         collector = PokemonKoreaCardCollector()
-        self.assertFalse(collector.HTTP_ENABLED)
-        self.assertEqual(collector.REQUEST_POLICY.request_budget, 1)
+        self.assertTrue(collector.HTTP_ENABLED)
+        self.assertEqual(collector.REQUEST_POLICY.request_budget, 6)
         self.assertLessEqual(collector.REQUEST_POLICY.max_items, 3)
         self.assertEqual(collector.REQUEST_POLICY.retry_limit, 0)
         self.assertEqual(collector.REQUEST_POLICY.timeout_seconds, 10)
@@ -152,7 +152,10 @@ class DomesticMarketSafetyTests(TestCase):
 
     def test_bunjang_never_promotes_completed_text_to_sold(self):
         with self.assertRaises(InvalidResponseError):
-            BunjangMarketCollector.normalize({**self.base, 'data_type': 'SOLD'})
+            BunjangMarketCollector.normalize({
+                'pid': 12345, 'name': '피카츄 025/165', 'price': 12000,
+                'saleStatus': 'SOLD',
+            })
 
     def test_naver_auction_requires_final_price_and_time(self):
         for changes in (
@@ -179,8 +182,10 @@ class DomesticMarketSafetyTests(TestCase):
 
     def test_seller_pii_fields_are_not_part_of_normalized_data(self):
         data = BunjangMarketCollector.normalize({
-            **self.base,
-            'data_type': 'CURRENT_LISTING',
+            'pid': 12345,
+            'name': '피카츄 025/165',
+            'price': 12000,
+            'saleStatus': 'SELLING',
             'seller_name': 'not-stored',
             'seller_nickname': 'not-stored',
             'phone': 'not-stored',
@@ -191,16 +196,22 @@ class DomesticMarketSafetyTests(TestCase):
 
     def test_listing_image_stays_listing_metadata(self):
         data = BunjangMarketCollector.normalize({
-            **self.base,
-            'data_type': 'CURRENT_LISTING',
+            'pid': 12345,
+            'name': '피카츄 025/165',
+            'price': 12000,
+            'saleStatus': 'SELLING',
+            'imageUrlTemplate': 'https://media.bunjang.co.kr/product/12345_{cnt}_1_w640.jpg',
+            'imageCount': 1,
         })
-        self.assertEqual(data.image_url, self.base['image_url'])
+        self.assertEqual(
+            data.image_url,
+            'https://media.bunjang.co.kr/product/12345_1_1_w640.jpg',
+        )
 
     @patch('requests.Session.request')
     def test_all_unapproved_collectors_stop_before_http(self, request):
         for collector in (
             KreamMarketCollector(),
-            BunjangMarketCollector(),
             NaverCafeCardmvkCollector(),
         ):
             with self.subTest(source=collector.SOURCE), self.assertRaises(ExternalAPIError):
@@ -210,7 +221,6 @@ class DomesticMarketSafetyTests(TestCase):
     def test_disabled_market_collectors_have_bounded_policy(self):
         for collector in (
             KreamMarketCollector(),
-            BunjangMarketCollector(),
             NaverCafeCardmvkCollector(),
         ):
             with self.subTest(source=collector.SOURCE):

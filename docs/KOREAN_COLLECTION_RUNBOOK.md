@@ -2,9 +2,10 @@
 
 ## 현재 결론
 
-2026-09-29 조사 기준 실제 HTTP collector가 승인된 `READY` source는 없다. 모든 국내 source
-command는 안전하게 `SKIPPED (collector disabled)`를 반환한다. Production 데이터를 쓰는
-one-shot command를 임의로 만들거나 실행하지 않는다.
+2026-09-29 개인용·소량 정책 기준 Pokémon Korea 공개 상세 URL의 이미지 lookup은
+`READY FOR DRY RUN`, BREAK 공개 상품 URL도 `READY FOR DRY RUN`이다. 번개장터는
+공식 Open API client가 준비됐지만 파트너 credential 발급 전이므로 `NEEDS CREDENTIAL`이다.
+KREAM과 NAVER CardMVK는 비활성이다. 자동 schedule과 Production write는 켜지 않았다.
 
 ## 현재 가능한 검증
 
@@ -17,6 +18,22 @@ one-shot command를 임의로 만들거나 실행하지 않는다.
 GitHub Actions의 `Collect market data` workflow도 같은 dry-run만 실행한다. 이미 확인된 수동
 workflow는 Django boot, External `DATABASE_URL`, migration 상태, command orchestration을
 검증하는 용도다.
+
+## One-shot 명령
+
+명시적인 `--write`가 없으면 두 명령 모두 dry-run이며 DB write는 0이다. 정확히 한 Card만
+선택하고 DEMO Card를 거부한다.
+
+```powershell
+.\.venv\Scripts\python.exe manage.py collect_pokemon_korea_image --card-id 13 --url "https://pokemoncard.co.kr/cards/detail/BS2023014025" --check-image --dry-run
+.\.venv\Scripts\python.exe manage.py collect_break_once --card-id 13 --url "https://app.break.market/products/<PUBLIC_ID>/<PUBLIC_SLUG>" --dry-run
+.\.venv\Scripts\python.exe manage.py update_bunjang --card-id 13 --limit 3 --dry-run
+```
+
+Pokémon Korea write는 매칭된 Card의 `image_url`만 바꾼다. BREAK write는 명시 가격이 있고
+카드가 안전하게 매칭된 단일 상품만 transaction으로 저장하며 `market_source + external_id`
+중복 방지를 재사용한다. BREAK URL은 사용자가 브라우저에서 공개 여부·가격·카드 식별을
+먼저 확인해야 하며 예시 placeholder를 그대로 실행하면 안 된다.
 
 ## 실제 source 활성화 전 필수 순서
 
@@ -33,10 +50,12 @@ workflow는 Django boot, External `DATABASE_URL`, migration 상태, command orch
 
 ## 현재 source별 다음 확인
 
-- Pokémon Korea: metadata 저장, 자동 조회, 이미지 hotlink를 각각 허용하는지 권리자 확인
+- Pokémon Korea: 공개 상세 URL one-shot만 사용; 자동 검색·주기 수집은 별도 검토
+- BREAK: 공개 product URL one-shot만 사용; 검색/sitemap 순회와 자동 schedule 금지
+- 번개장터: 공식 파트너 access key/secret key 발급 후 Card 1장 dry-run부터 검증
 - KREAM: 자동 조회 허용 여부와 공식적인 데이터 제공 interface 확인
 - 번개장터: 자동 조회 허용 여부와 공식/문서화된 상품 interface 확인
 - NAVER CardMVK: NAVER와 카페 운영자의 명시적 자동 수집 허가 없이는 진행하지 않음
 
-허가 확인 전에는 실제 데이터 입력 명령이 없다. disabled command를 실제 collector처럼
-오해하지 않는다.
+Pokepolio는 자동 수집하지 않고 사람이 sanity check에만 사용한다. disabled command를 실제
+collector처럼 오해하지 않는다.

@@ -71,7 +71,6 @@ class DisabledCollectorCommandTests(TestCase):
     commands = (
         'update_pokemon_korea',
         'update_kream',
-        'update_bunjang',
         'update_naver_cardmvk',
     )
 
@@ -84,6 +83,13 @@ class DisabledCollectorCommandTests(TestCase):
                 call_command(command_name, dry_run=True, stdout=output)
                 self.assertIn('SKIPPED (collector disabled)', output.getvalue())
 
+        self.assertEqual(self._counts(), before)
+
+    def test_bunjang_without_explicit_card_skips_without_writes(self):
+        before = self._counts()
+        output = StringIO()
+        call_command('update_bunjang', dry_run=True, stdout=output)
+        self.assertIn('SKIPPED', output.getvalue())
         self.assertEqual(self._counts(), before)
 
     @patch('cards.management.commands.update_ebay.call_command')
@@ -123,7 +129,12 @@ class DisabledCollectorCommandTests(TestCase):
         with self.assertRaisesMessage(CommandError, '1 collector source'):
             call_command('update_korean_market', dry_run=True, stdout=output)
 
-        self.assertEqual(calls, list(self.commands))
+        self.assertEqual(calls, [
+            'update_pokemon_korea',
+            'update_kream',
+            'update_bunjang',
+            'update_naver_cardmvk',
+        ])
         self.assertIn('KREAM: FAILED', output.getvalue())
         self.assertIn('NAVER CardMVK: SKIPPED', output.getvalue())
 

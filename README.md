@@ -21,7 +21,8 @@
 - Phase 12 UI 및 Phase 13 테스트·오류처리 완료
 - JustTCG에서 실제 Pikachu `025/165` 기본정보를 Production PostgreSQL에 저장·표시 완료
 - eBay Production OAuth/Browse 및 해당 카드의 현재 매물 3건 저장·표시 완료
-- 국내 가격 데이터 출처 검토 중
+- Pokémon Korea 공식 이미지 공개 URL one-shot collector 구현
+- BREAK 공개 상품 URL one-shot collector 구현(수동 URL 전용)
 - DEMO 데이터로 UI·검색·그래프 확인 가능
 - Render Web Service와 PostgreSQL 배포 및 GitHub 기반 배포 흐름 검증 완료
 
@@ -31,11 +32,13 @@
 |---|---|---|
 | 공통 schema·normalizer·matcher | IMPLEMENTED | 외부 HTTP 없이 synthetic 최소 입력을 검증 |
 | GitHub Actions DB/orchestration 수동 실행 | VERIFIED | Production PostgreSQL 연결과 dry-run 성공 |
-| Pokémon Card Game Korea HTTP | DISABLED | metadata·이미지 이용 허용 범위 수동 확인 필요 |
-| KREAM HTTP | DISABLED | 전체 시세 로그인 제한 및 공개 수집 interface 미확인 |
-| 번개장터 HTTP | DISABLED | 공개 매물은 확인했으나 안정적·허용된 수집 interface 미확인 |
+| Pokémon Card Game Korea HTTP | READY FOR DRY RUN | 명시적 공개 상세 URL의 공식 이미지 lookup |
+| BREAK HTTP | READY FOR DRY RUN | 명시적 공개 상품 URL 1건, 자동 검색 없음 |
+| KREAM HTTP | PUBLIC PAGE NOT USABLE | 전체 시세 로그인 제한 및 필요한 공개 필드 불완전 |
+| 번개장터 Open API | NEEDS CREDENTIAL | 공식 JWT·상품 검색 구현, 파트너 key 발급 전 HTTP 0회 |
 | NAVER CardMVK HTTP | DISABLED | robots 및 NAVER 약관상 자동 수집하지 않음 |
-| Production 국내 one-shot·자동 schedule | PLANNED | READY source 검증 후 별도 단계로 진행 |
+| Production 국내 one-shot | READY FOR MANUAL DRY-RUN | 명시적 Card와 URL만 허용 |
+| 자동 schedule | OFF | workflow_dispatch 유지 |
 
 조사 근거는 [한국판 카드·국내 시장 source 조사](docs/KOREAN_SOURCE_RESEARCH.md), 안전한
 활성화 순서는 [국내 시장 수집 Runbook](docs/KOREAN_COLLECTION_RUNBOOK.md)에 정리했다.
@@ -52,7 +55,9 @@ DEMO는 실제 카드 또는 시세가 아니며 화면 전체에 명확히 표�
 - 현재 매물 PriceHistory와 Chart.js 참고가 변화 그래프
 - 공식 JustTCG v1 CardDataCollector
 - 공식 eBay Browse API MarketCollector
-- 한국 공식 카드·KREAM·번개장터·NAVER CardMVK용 HTTP 비활성 정규화 경계
+- Pokémon Korea 공식 이미지와 BREAK 공개 상품 URL one-shot collector
+- 번개장터 공식 Open API JWT·상품 검색 collector(credential 발급 전)
+- KREAM·NAVER CardMVK용 HTTP 비활성 정규화 경계
 - 개발 전용 DEMO seed/clear 명령
 - Django Admin과 사용자 친화적 404/500 페이지
 

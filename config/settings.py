@@ -33,6 +33,8 @@ ALLOWED_HOSTS = env_list(
     default=('localhost', '127.0.0.1', 'testserver'),
 )
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+BUNJANG_ACCESS_KEY = os.environ.get('BUNJANG_ACCESS_KEY', '')
+BUNJANG_SECRET_KEY = os.environ.get('BUNJANG_SECRET_KEY', '')
 
 
 # Application definition

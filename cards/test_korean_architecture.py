@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from cards.collectors import ExternalAPIError, InvalidResponseError
+from cards.collectors import ExternalAPIError, InvalidResponseError, MissingCredentialsError
 from cards.collectors.card_data import PokemonKoreaCardCollector
 from cards.collectors.markets import (
     BunjangMarketCollector,
@@ -64,9 +64,11 @@ class PokemonKoreaCardArchitectureTests(TestCase):
         )
         self.assertEqual(data.image_url, '')
 
-    def test_http_collection_is_disabled(self):
-        with self.assertRaises(ExternalAPIError):
-            PokemonKoreaCardCollector().collect()
+    def test_http_collection_requires_explicit_public_detail_url(self):
+        collector = PokemonKoreaCardCollector()
+        self.assertTrue(collector.HTTP_ENABLED)
+        self.assertFalse(hasattr(collector, 'search'))
+        self.assertEqual(collector.REQUEST_POLICY.retry_limit, 0)
 
     def test_korean_card_source_attribution_and_image_render(self):
         import_cards([PokemonKoreaCardCollector.normalize(self.fixture())])
@@ -153,13 +155,19 @@ class KoreanMarketFixtureTests(TestCase):
 
     def test_bunjang_current_listing_fixture(self):
         data = BunjangMarketCollector.normalize({
-            **self.base, 'data_type': 'CURRENT_LISTING'
+            'pid': 12345,
+            'name': '피카츄 025/165',
+            'price': 12000,
+            'saleStatus': 'SELLING',
         })
         self.assertEqual(data.listing_type, ListingType.CURRENT_LISTING)
 
     def test_bunjang_sold_text_does_not_create_fake_sold(self):
         with self.assertRaises(InvalidResponseError):
-            BunjangMarketCollector.normalize({**self.base, 'data_type': 'SOLD'})
+            BunjangMarketCollector.normalize({
+                'pid': 12345, 'name': '피카츄 025/165', 'price': 12000,
+                'saleStatus': 'SOLD',
+            })
 
     def test_naver_trade_fixture_is_current_listing(self):
         data = NaverCafeCardmvkCollector.normalize({**self.base, 'board_type': 'TRADE'})
@@ -181,14 +189,17 @@ class KoreanMarketFixtureTests(TestCase):
                 **self.base, 'board_type': 'AUCTION_RESULT'
             })
 
-    def test_all_domestic_http_collectors_are_disabled(self):
+    def test_unapproved_domestic_http_collectors_are_disabled(self):
         for collector in (
             KreamMarketCollector(),
-            BunjangMarketCollector(),
             NaverCafeCardmvkCollector(),
         ):
             with self.subTest(source=collector.SOURCE), self.assertRaises(ExternalAPIError):
                 collector.collect()
+
+    def test_bunjang_official_api_requires_credentials_before_http(self):
+        with self.assertRaises(MissingCredentialsError):
+            BunjangMarketCollector(access_key='', secret_key='').collect('피카츄', 1)
 
 
 class ListingTypeAndPriceSeparationTests(TestCase):
